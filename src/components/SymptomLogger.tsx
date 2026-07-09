@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Undo2, Heart } from 'lucide-react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Undo2, Heart, AlertCircle } from 'lucide-react';
 import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry } from '../lib/types';
 import type { Entry } from '../lib/types';
 
@@ -28,6 +28,25 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const UNDO_WINDOW_MS = 8000;
+const VOICE_ERROR_DISPLAY_MS = 5000;
+
+function describeVoiceError(code: string): string {
+  switch (code) {
+    case 'not-allowed':
+    case 'permission-denied':
+      return "Microphone access was denied — you can still tap symptoms manually below.";
+    case 'no-speech':
+      return "Didn't catch anything — try again, or tap symptoms manually.";
+    case 'audio-capture':
+      return 'No microphone found — tap symptoms manually instead.';
+    case 'network':
+      return 'Voice input needs a live connection — tap symptoms manually instead.';
+    case 'aborted':
+      return '';
+    default:
+      return "Voice input didn't work that time — tap symptoms manually instead.";
+  }
+}
 
 export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerProps) {
   const [selectedTags, setSelectedTags] = useState<Map<string, TagEntry>>(new Map());
@@ -36,6 +55,15 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
   const [submitting, setSubmitting] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showCycleInput, setShowCycleInput] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const voiceErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
+    };
+  }, []);
+
   const [undoEntryId, setUndoEntryId] = useState<string | null>(null);
   const [undoing, setUndoing] = useState(false);
 
@@ -119,11 +147,19 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
     }
   };
 
+  const showVoiceErrorMsg = useCallback((message: string) => {
+    if (!message) return;
+    setVoiceError(message);
+    if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
+    voiceErrorTimerRef.current = setTimeout(() => setVoiceError(null), VOICE_ERROR_DISPLAY_MS);
+  }, []);
+
   const handleVoiceInput = useCallback(() => {
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognitionCtor) return;
 
+    setVoiceError(null);
     const recognition = new SpeechRecognitionCtor();
     recognition.continuous = false;
     recognition.interimResults = false;
@@ -153,11 +189,20 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
       }
     };
 
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      setIsListening(false);
+      showVoiceErrorMsg(describeVoiceError(event.error));
+    };
+
     recognition.onend = () => setIsListening(false);
 
-    recognition.start();
-  }, [selectedTags, handleTagClick, handleOtherTextChange]);
+    try {
+      recognition.start();
+    } catch {
+      setIsListening(false);
+      showVoiceErrorMsg(describeVoiceError('unknown'));
+    }
+  }, [selectedTags, handleTagClick, handleOtherTextChange, showVoiceErrorMsg]);
 
   const selectedArray = Array.from(selectedTags.values());
 
@@ -223,6 +268,14 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
           </button>
         )}
       </div>
+
+      {/* Voice error — previously silent. Manual tap entry works regardless. */}
+      {voiceError && (
+        <div className="flex items-start gap-2 px-3 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-600 animate-fade-in">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>{voiceError}</span>
+        </div>
+      )}
 
       {/* Cycle Day Input */}
       {showCycleInput && (

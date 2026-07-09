@@ -12,6 +12,30 @@ interface EdgeNarrationResponse {
   provider: 'groq' | 'gemini' | 'template';
 }
 
+const CLIENT_TIMEOUT_MS = 20000;
+
+class TimeoutError extends Error {
+  constructor() {
+    super('client-side timeout waiting for generate-narrative');
+    this.name = 'TimeoutError';
+  }
+}
+
+function withClientTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new TimeoutError()), ms);
+    promise
+      .then(result => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch(err => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 export async function generateNarrative(stats: ComputedStats): Promise<NarrationResult> {
   if (stats.entry_count === 0) {
     return { text: deterministicNarrative(stats), provider: 'template' };
@@ -22,24 +46,30 @@ export async function generateNarrative(stats: ComputedStats): Promise<Narration
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke<EdgeNarrationResponse>(
-      'generate-narrative',
-      { body: { computed_stats: stats } }
+    const { data, error } = await withClientTimeout(
+      supabase.functions.invoke<EdgeNarrationResponse>('generate-narrative', {
+        body: { computed_stats: stats }
+      }),
+      CLIENT_TIMEOUT_MS
     );
 
     if (error) throw error;
 
     if (data && data.text && data.provider !== 'template') {
-      console.log('[narration]', data.provider, 'succeeded');
+      console.log(`[narration] ${data.provider} succeeded`);
       return { text: data.text, provider: data.provider };
     }
 
-    console.log('[narration] edge function exhausted Groq and Gemini, using local template');
+    console.log('[narration] edge function exhausted Groq + Gemini, using local template');
   } catch (err) {
-    console.warn(
-      '[narration] generate-narrative call failed, using local template:',
-      err instanceof Error ? err.message : err
-    );
+    if (err instanceof TimeoutError) {
+      console.warn(`[narration] client-side timeout after ${CLIENT_TIMEOUT_MS}ms, using local template`);
+    } else {
+      console.warn(
+        '[narration] generate-narrative call failed, using local template:',
+        err instanceof Error ? err.message : err
+      );
+    }
   }
 
   return { text: deterministicNarrative(stats), provider: 'template' };
