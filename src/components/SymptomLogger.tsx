@@ -1,9 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Heart } from 'lucide-react';
+import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Undo2, Heart } from 'lucide-react';
 import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry } from '../lib/types';
+import type { Entry } from '../lib/types';
 
 interface SymptomLoggerProps {
-  onSubmit: (tags: TagEntry[], cycleDay?: number) => Promise<void>;
+  onSubmit: (tags: TagEntry[], cycleDay?: number) => Promise<Entry | void>;
+  onDelete: (id: string) => Promise<void>;
   disabled?: boolean;
 }
 
@@ -25,14 +27,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Other'
 };
 
-export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
+const UNDO_WINDOW_MS = 8000;
+
+export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerProps) {
   const [selectedTags, setSelectedTags] = useState<Map<string, TagEntry>>(new Map());
   const [cycleDay, setCycleDay] = useState<number | ''>('');
   const [otherText, setOtherText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showUndo, setShowUndo] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showCycleInput, setShowCycleInput] = useState(false);
+  const [undoEntryId, setUndoEntryId] = useState<string | null>(null);
+  const [undoing, setUndoing] = useState(false);
+
   const speechSupported = useMemo(() => {
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
     return !!SpeechRecognitionCtor;
@@ -84,10 +90,14 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
     setSubmitting(true);
     try {
       const tags = Array.from(selectedTags.values());
-      await onSubmit(tags, cycleDay === '' ? undefined : Number(cycleDay));
+      const inserted = await onSubmit(tags, cycleDay === '' ? undefined : Number(cycleDay));
 
-      setShowUndo(true);
-      setTimeout(() => setShowUndo(false), 8000);
+      if (inserted && 'id' in inserted) {
+        setUndoEntryId(inserted.id);
+        setTimeout(() => {
+          setUndoEntryId(current => (current === inserted.id ? null : current));
+        }, UNDO_WINDOW_MS);
+      }
 
       setSelectedTags(new Map());
       setCycleDay('');
@@ -95,6 +105,17 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
       setShowCycleInput(false);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!undoEntryId || undoing) return;
+    setUndoing(true);
+    try {
+      await onDelete(undoEntryId);
+    } finally {
+      setUndoEntryId(null);
+      setUndoing(false);
     }
   };
 
@@ -289,17 +310,26 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
         </button>
       </div>
 
-      {/* Success Toast */}
-      {showUndo && (
+      {/* Success Toast — now with a real Undo action */}
+      {undoEntryId && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 toast">
           <div className="flex items-center gap-3 bg-white border border-rose-200 rounded-2xl px-5 py-3 shadow-card">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-glow-soft">
               <Check className="w-4 h-4 text-white" />
             </div>
-            <span className="text-sm text-rose-900 font-semibold">Symptoms logged successfully</span>
+            <span className="text-sm text-rose-900 font-semibold">Symptoms logged</span>
             <button
-              onClick={() => setShowUndo(false)}
+              onClick={handleUndo}
+              disabled={undoing}
+              className="flex items-center gap-1.5 text-sm font-bold text-rose-600 hover:text-rose-800 disabled:opacity-50 transition-colors"
+            >
+              <Undo2 className="w-4 h-4" />
+              {undoing ? 'Undoing...' : 'Undo'}
+            </button>
+            <button
+              onClick={() => setUndoEntryId(null)}
               className="text-rose-400 hover:text-rose-600 transition-colors"
+              title="Dismiss (keeps the entry)"
             >
               <X className="w-4 h-4" />
             </button>

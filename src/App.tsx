@@ -21,6 +21,7 @@ import { useEntries } from './hooks/useEntries';
 import { usePatternReports } from './hooks/usePatternReports';
 import { useDemoEntries } from './hooks/useDemoEntries';
 import { SymptomLogger } from './components/SymptomLogger';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { CaseFile } from './components/CaseFile';
 import { EntryHistory } from './components/EntryHistory';
 import { RehearsalMode } from './components/RehearsalMode';
@@ -200,7 +201,7 @@ function AppContent() {
                       <div className="text-xs text-rose-400 uppercase tracking-wide font-medium">entries</div>
                     </div>
                   </div>
-                  <SymptomLogger onSubmit={addEntry} disabled={entriesLoading} />
+                  <SymptomLogger onSubmit={addEntry} onDelete={deleteEntry} disabled={entriesLoading} />
                 </div>
               </div>
             </div>
@@ -246,7 +247,9 @@ function AppContent() {
 
             {(!demoMode || demo.loaded) && (
               <div className="print-area">
-                <CaseFile entries={activeEntries} onGenerated={demoMode ? undefined : saveReport} />
+                <ErrorBoundary fallbackLabel="Something went wrong displaying this Case File">
+                  <CaseFile entries={activeEntries} onGenerated={demoMode ? undefined : saveReport} />
+                </ErrorBoundary>
               </div>
             )}
           </div>
