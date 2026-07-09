@@ -14,10 +14,12 @@ import {
   Feather,
   Star,
   Quote,
+  X,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
 import { usePatternReports } from './hooks/usePatternReports';
+import { useDemoEntries } from './hooks/useDemoEntries';
 import { SymptomLogger } from './components/SymptomLogger';
 import { CaseFile } from './components/CaseFile';
 import { EntryHistory } from './components/EntryHistory';
@@ -61,12 +63,27 @@ function AppContent() {
   const { loading: authLoading } = useAuth();
   const { entries, loading: entriesLoading, addEntry, deleteEntry } = useEntries();
   const { saveReport } = usePatternReports();
+  const demo = useDemoEntries();
   const [activeTab, setActiveTab] = useState<TabType>('log');
   const [showLanding, setShowLanding] = useState(true);
+  const [demoMode, setDemoMode] = useState(false);
 
-  const stats = useMemo(() => computeStats(entries), [entries]);
+  const activeEntries = demoMode ? demo.entries : entries;
+  const stats = useMemo(() => computeStats(activeEntries), [activeEntries]);
 
-  if ((authLoading || entriesLoading) && entries.length === 0) {
+  const enterDemo = () => {
+    setDemoMode(true);
+    setShowLanding(false);
+    setActiveTab('casefile');
+    demo.fetchDemoEntries();
+  };
+
+  const exitDemo = () => {
+    setDemoMode(false);
+    setActiveTab('log');
+  };
+
+  if ((authLoading || entriesLoading) && entries.length === 0 && !demoMode) {
     return <LoadingScreen />;
   }
 
@@ -76,10 +93,7 @@ function AppContent() {
         <ShaderBackground />
         <LandingPage
           onStart={() => setShowLanding(false)}
-          onViewSample={() => {
-            setShowLanding(false);
-            setActiveTab('casefile');
-          }}
+          onViewSample={enterDemo}
         />
       </>
     );
@@ -124,7 +138,7 @@ function AppContent() {
                   active={activeTab === 'casefile'}
                   onClick={() => setActiveTab('casefile')}
                   icon={<FileText className="w-4 h-4" />}
-                  badge={entries.length > 0 ? entries.length : undefined}
+                  badge={activeEntries.length > 0 ? activeEntries.length : undefined}
                 >
                   Case File
                 </TabButton>
@@ -141,15 +155,33 @@ function AppContent() {
             {/* Status indicator */}
             <div className="flex items-center gap-2 opacity-70">
               <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse-soft" />
-              <span className="text-xs text-rose-500 hidden sm:block font-medium">Synced</span>
+                <span className="text-xs text-rose-500 hidden sm:block font-medium">{demoMode ? 'Sample' : 'Synced'}</span>
             </div>
           </div>
         </div>
       </header>
 
+      {demoMode && (
+        <div className="bg-rose-500/10 border-b border-rose-500/20 px-4 py-2 relative z-10">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2 text-rose-600">
+              <Sparkles className="w-4 h-4" />
+              <span>You're viewing sample data. Nothing here is saved to your account.</span>
+            </div>
+            <button
+              onClick={exitDemo}
+              className="flex items-center gap-1.5 text-rose-500 hover:text-rose-800 transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+              Exit sample
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 relative z-10">
-        {activeTab === 'log' && (
+        {activeTab === 'log' && !demoMode && (
           <div className="grid lg:grid-cols-5 gap-6 animate-fade-in">
             <div className="lg:col-span-3">
               <div className="gradient-border-animated">
@@ -184,19 +216,19 @@ function AppContent() {
             <div className="mb-6 flex items-start justify-between">
               <div>
                 <h2 className="font-display text-2xl font-semibold text-rose-950 mb-1">
-                  <TextReveal text="Your Case File" delay={100} />
+                  <TextReveal text={demoMode ? 'Sample Case File' : 'Your Case File'} delay={100} />
                 </h2>
                 <p className="text-sm text-rose-500 text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
                   A clinical summary ready for your next appointment
                 </p>
               </div>
-              {entries.length > 0 && (
+              {activeEntries.length > 0 && (
                 <div className="flex items-center gap-3 text-sm text-rose-500">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
                     <span>
                       {Math.ceil(
-                        (Date.now() - new Date(entries[entries.length - 1].created_at).getTime()) /
+                        (Date.now() - new Date(activeEntries[activeEntries.length - 1].created_at).getTime()) /
                           (1000 * 60 * 60 * 24 * 7)
                       )} weeks tracked
                     </span>
@@ -205,9 +237,18 @@ function AppContent() {
               )}
             </div>
 
-            <div className="print-area">
-              <CaseFile entries={entries} onGenerated={saveReport} />
-            </div>
+            {demoMode && demo.loading && (
+              <div className="text-center py-16 text-rose-400 text-sm">Loading sample data...</div>
+            )}
+            {demoMode && demo.error && (
+              <div className="text-center py-16 text-rose-600 text-sm">{demo.error}</div>
+            )}
+
+            {(!demoMode || demo.loaded) && (
+              <div className="print-area">
+                <CaseFile entries={activeEntries} onGenerated={demoMode ? undefined : saveReport} />
+              </div>
+            )}
           </div>
         )}
 
@@ -233,10 +274,10 @@ function AppContent() {
             <Shield className="w-3.5 h-3.5" />
             <span>Anonymous by design. Only aggregated stats reach the AI.</span>
           </div>
-          {entries.length > 0 && (
+          {activeEntries.length > 0 && (
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              <span>{entries.length} logged</span>
+              <span>{activeEntries.length} logged</span>
             </div>
           )}
         </div>
