@@ -1,4 +1,4 @@
-import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Sparkles, Heart } from 'lucide-react';
+import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Heart } from 'lucide-react';
 import type { ComputedStats } from '../lib/types';
 import { TAG_LABELS } from '../lib/types';
 

@@ -25,15 +25,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Other'
 };
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  pain: '🌸',
-  energy: '✨',
-  digestive: '🍃',
-  physical: '🌷',
-  emotional: '💫',
-  other: '📝'
-};
-
 export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
   const [selectedTags, setSelectedTags] = useState<Map<string, TagEntry>>(new Map());
   const [cycleDay, setCycleDay] = useState<number | ''>('');
@@ -42,13 +33,9 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
   const [showUndo, setShowUndo] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showCycleInput, setShowCycleInput] = useState(false);
-  const [justLogged, setJustLogged] = useState(false);
-
   const speechSupported = useMemo(() => {
-    const SpeechRecognition =
-      (window as unknown as { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition;
-    return !!SpeechRecognition;
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    return !!SpeechRecognitionCtor;
   }, []);
 
   const handleTagClick = useCallback((tag: string) => {
@@ -99,9 +86,6 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
       const tags = Array.from(selectedTags.values());
       await onSubmit(tags, cycleDay === '' ? undefined : Number(cycleDay));
 
-      setJustLogged(true);
-      setTimeout(() => setJustLogged(false), 600);
-
       setShowUndo(true);
       setTimeout(() => setShowUndo(false), 8000);
 
@@ -115,13 +99,11 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
   };
 
   const handleVoiceInput = useCallback(() => {
-    const SpeechRecognition =
-      (window as unknown as { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition;
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognitionCtor) return;
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionCtor();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
@@ -162,16 +144,13 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
     <div className="space-y-8">
       {/* Symptom Grid */}
       <div className="space-y-6">
-        {Object.entries(SYMPTOM_CATEGORIES).map(([_category, tags], catIndex) => {
-          const category = _category as string;
-          return (
+        {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags], catIndex) => (
             <div
               key={category}
               className="rise-fade"
               style={{ animationDelay: `${catIndex * 80}ms`, opacity: 0 }}
             >
-              <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <span className="text-base sway inline-block">{CATEGORY_EMOJIS[category]}</span>
+              <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-3">
                 {CATEGORY_LABELS[category]}
               </h4>
               <div className="flex flex-wrap gap-2">
@@ -190,8 +169,7 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
                 ))}
               </div>
             </div>
-          );
-        })}
+        ))}
       </div>
 
       {/* Quick Actions */}
@@ -295,17 +273,12 @@ export function SymptomLogger({ onSubmit, disabled }: SymptomLoggerProps) {
         <button
           onClick={handleSubmit}
           disabled={disabled || submitting || selectedTags.size === 0}
-          className={`group w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 disabled:from-rose-200 disabled:to-rose-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all duration-300 shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg hover:scale-[1.02] hover:shadow-petal shimmer-overlay ${justLogged ? 'scale-95' : ''}`}
+          className="group w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 disabled:from-rose-200 disabled:to-rose-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all duration-300 shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg hover:scale-[1.02] hover:shadow-petal shimmer-overlay"
         >
           {submitting ? (
             <>
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span>Logging...</span>
-            </>
-          ) : justLogged ? (
-            <>
-              <Check className="w-5 h-5" />
-              <span>Logged!</span>
             </>
           ) : (
             <>

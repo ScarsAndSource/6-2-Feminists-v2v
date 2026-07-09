@@ -123,43 +123,71 @@ export function computeStats(entries: Entry[]): ComputedStats {
 
 function computeCoOccurrence(entries: Entry[]): ComputedStats['co_occurrence'] {
   const pairings = new Map<string, { lagSum: number; n: number }>();
-  const tagDates = new Map<string, Date[]>();
 
-  // Collect all dates for each tag
+  // Collect dates per tag, deduped to one entry per calendar day. Two
+  // symptoms logged three times each on the same three days are one
+  // "episode" of co-occurrence repeated three times, not nine cross-product
+  // pairs - the day is the unit a patient (and a doctor) actually reasons
+  // about.
+  const tagDayMap = new Map<string, Set<string>>();
+
   for (const entry of entries) {
     const date = new Date(entry.created_at);
+    const dayKey = date.toISOString().slice(0, 10);
+
     for (const tag of entry.tags) {
       if (tag.tag === 'other') continue;
-      const dates = tagDates.get(tag.tag) || [];
-      dates.push(date);
-      tagDates.set(tag.tag, dates);
+      const days = tagDayMap.get(tag.tag) || new Set<string>();
+      days.add(dayKey);
+      tagDayMap.set(tag.tag, days);
     }
   }
 
-  // Find co-occurrences
-  const tags = Array.from(tagDates.keys());
+  const tags = Array.from(tagDayMap.keys());
   for (let i = 0; i < tags.length; i++) {
     for (let j = i + 1; j < tags.length; j++) {
       const tagA = tags[i];
       const tagB = tags[j];
-      const datesA = tagDates.get(tagA) || [];
-      const datesB = tagDates.get(tagB) || [];
 
-      for (const dateA of datesA) {
-        for (const dateB of datesB) {
+      const daysA = Array.from(tagDayMap.get(tagA) || [])
+        .map(d => new Date(d))
+        .sort((a, b) => a.getTime() - b.getTime());
+      const daysB = Array.from(tagDayMap.get(tagB) || [])
+        .map(d => new Date(d))
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      // Greedy one-to-one nearest-match: each day A logs at most one
+      // "co-occurrence episode" with a not-yet-claimed day B within the
+      // window, instead of counting every possible pair.
+      const usedB = new Set<number>();
+      let lagSum = 0;
+      let n = 0;
+
+      for (const dateA of daysA) {
+        let bestIdx = -1;
+        let bestDiff = Infinity;
+
+        for (let k = 0; k < daysB.length; k++) {
+          if (usedB.has(k)) continue;
           const daysDiff = Math.abs(
-            (dateA.getTime() - dateB.getTime()) / (1000 * 60 * 60 * 24)
+            (dateA.getTime() - daysB[k].getTime()) / (1000 * 60 * 60 * 24)
           );
-
-          if (daysDiff <= CO_OCCURRENCE_WINDOW_DAYS) {
-            const key = [tagA, tagB].sort().join('::');
-            const existing = pairings.get(key) || { lagSum: 0, n: 0 };
-            pairings.set(key, {
-              lagSum: existing.lagSum + daysDiff,
-              n: existing.n + 1
-            });
+          if (daysDiff <= CO_OCCURRENCE_WINDOW_DAYS && daysDiff < bestDiff) {
+            bestDiff = daysDiff;
+            bestIdx = k;
           }
         }
+
+        if (bestIdx !== -1) {
+          usedB.add(bestIdx);
+          lagSum += bestDiff;
+          n += 1;
+        }
+      }
+
+      if (n > 0) {
+        const key = [tagA, tagB].sort().join('::');
+        pairings.set(key, { lagSum, n });
       }
     }
   }

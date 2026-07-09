@@ -36,11 +36,7 @@ export function useEntries() {
       try {
         const { data, error: insertError } = await supabase
           .from('entries')
-          .insert({
-            tags,
-            cycle_day: cycleDay ?? null,
-            user_id: null // Allow null for single-tenant mode
-          })
+          .insert({ tags, cycle_day: cycleDay ?? null })
           .select()
           .single();
 

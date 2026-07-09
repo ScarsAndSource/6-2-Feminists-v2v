@@ -1,4 +1,4 @@
-import { Clock, Trash2, Calendar, Heart } from 'lucide-react';
+import { Clock, Trash2 } from 'lucide-react';
 import type { Entry } from '../lib/types';
 import { TAG_LABELS } from '../lib/types';
 
@@ -98,7 +98,6 @@ export function EntryHistory({ entries, onDelete, loading }: EntryHistoryProps) 
                   </span>
                   {entry.cycle_day && (
                     <span className="flex items-center gap-1 text-rose-500 font-medium">
-                      <Heart className="w-3 h-3" />
                       Day {entry.cycle_day}
                     </span>
                   )}

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, getOrCreateUser } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -15,20 +15,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session (no auto sign-in)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    let cancelled = false;
 
-    // Listen for auth changes
+    getOrCreateUser()
+      .then(sessionUser => {
+        if (!cancelled) {
+          setUser(sessionUser);
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to establish anonymous session:', err);
+        if (!cancelled) {
+          setUser(null);
+          setLoading(false);
+        }
+      });
+
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

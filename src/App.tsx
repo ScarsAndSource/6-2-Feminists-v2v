@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
+import { usePatternReports } from './hooks/usePatternReports';
 import { SymptomLogger } from './components/SymptomLogger';
 import { CaseFile } from './components/CaseFile';
 import { EntryHistory } from './components/EntryHistory';
@@ -59,12 +60,13 @@ function TextReveal({
 function AppContent() {
   const { loading: authLoading } = useAuth();
   const { entries, loading: entriesLoading, addEntry, deleteEntry } = useEntries();
+  const { saveReport } = usePatternReports();
   const [activeTab, setActiveTab] = useState<TabType>('log');
   const [showLanding, setShowLanding] = useState(true);
 
   const stats = useMemo(() => computeStats(entries), [entries]);
 
-  if (entriesLoading && entries.length === 0) {
+  if ((authLoading || entriesLoading) && entries.length === 0) {
     return <LoadingScreen />;
   }
 
@@ -204,7 +206,7 @@ function AppContent() {
             </div>
 
             <div className="print-area">
-              <CaseFile entries={entries} />
+              <CaseFile entries={entries} onGenerated={saveReport} />
             </div>
           </div>
         )}

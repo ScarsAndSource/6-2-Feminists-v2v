@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Sparkles,
   Info,
-  Heart
+  Heart,
 } from 'lucide-react';
 import type { ComputedStats, PatternReport, Entry } from '../lib/types';
 import { TAG_LABELS } from '../lib/types';

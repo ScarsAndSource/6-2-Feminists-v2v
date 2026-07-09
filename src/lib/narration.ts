@@ -1,8 +1,14 @@
 import type { ComputedStats } from './types';
 import { deterministicNarrative } from './aggregation';
+import { supabase } from './supabase';
 
 interface NarrationResult {
   text: string;
+  provider: 'groq' | 'gemini' | 'template';
+}
+
+interface EdgeNarrationResponse {
+  text: string | null;
   provider: 'groq' | 'gemini' | 'template';
 }
 
@@ -16,21 +22,25 @@ export async function generateNarrative(stats: ComputedStats): Promise<Narration
   }
 
   try {
-    const res = await fetch('/api/generate-narrative', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stats })
-    });
+    const { data, error } = await supabase.functions.invoke<EdgeNarrationResponse>(
+      'generate-narrative',
+      { body: { computed_stats: stats } }
+    );
 
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status}`);
+    if (error) throw error;
+
+    if (data && data.text && data.provider !== 'template') {
+      console.log('[narration]', data.provider, 'succeeded');
+      return { text: data.text, provider: data.provider };
     }
 
-    const data = await res.json();
-    console.log('[narration] Server returned', data.provider);
-    return { text: data.text, provider: data.provider };
+    console.log('[narration] edge function exhausted Groq and Gemini, using local template');
   } catch (err) {
-    console.warn('[narration] Server API failed, using template:', err);
-    return { text: deterministicNarrative(stats), provider: 'template' };
+    console.warn(
+      '[narration] generate-narrative call failed, using local template:',
+      err instanceof Error ? err.message : err
+    );
   }
+
+  return { text: deterministicNarrative(stats), provider: 'template' };
 }
