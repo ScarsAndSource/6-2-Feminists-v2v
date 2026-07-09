@@ -1,0 +1,231 @@
+import type { Entry, ComputedStats } from './types';
+
+const CO_OCCURRENCE_WINDOW_DAYS = 3;
+const MIN_SAMPLE_SIZE = 3;
+const COVERAGE_GAP_DAYS = 14;
+
+export function computeStats(entries: Entry[]): ComputedStats {
+  if (entries.length === 0) {
+    return {
+      entry_count: 0,
+      date_range: { start: '', end: '' },
+      tag_frequency: [],
+      severity_by_tag: [],
+      co_occurrence: [],
+      coverage_gap_flag: false
+    };
+  }
+
+  const sortedEntries = [...entries].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  const dates = sortedEntries.map(e => new Date(e.created_at));
+  const date_range = {
+    start: dates[0].toISOString(),
+    end: dates[dates.length - 1].toISOString()
+  };
+
+  // Tag frequency (excluding 'other' from ranking)
+  const tagCounts = new Map<string, number>();
+  const otherNotes: string[] = [];
+
+  for (const entry of sortedEntries) {
+    for (const tag of entry.tags) {
+      if (tag.tag === 'other' && tag.note) {
+        otherNotes.push(tag.note);
+      }
+      tagCounts.set(tag.tag, (tagCounts.get(tag.tag) || 0) + 1);
+    }
+  }
+
+  const tag_frequency = Array.from(tagCounts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Severity by tag
+  const severityByTag = new Map<string, { sum: number; n: number }>();
+
+  for (const entry of sortedEntries) {
+    for (const tag of entry.tags) {
+      if (tag.tag === 'other') continue;
+      const existing = severityByTag.get(tag.tag) || { sum: 0, n: 0 };
+      severityByTag.set(tag.tag, {
+        sum: existing.sum + tag.severity,
+        n: existing.n + 1
+      });
+    }
+  }
+
+  const severity_by_tag = Array.from(severityByTag.entries())
+    .map(([tag, { sum, n }]) => ({
+      tag,
+      avg_severity: Math.round((sum / n) * 10) / 10,
+      n,
+      low_confidence: n < MIN_SAMPLE_SIZE
+    }))
+    .sort((a, b) => b.n - a.n);
+
+  // Co-occurrence patterns
+  const co_occurrence = computeCoOccurrence(sortedEntries);
+
+  // Cycle day correlation
+  const entriesWithCycleDay = sortedEntries.filter(e => e.cycle_day != null);
+  let cycle_day_correlation: ComputedStats['cycle_day_correlation'];
+
+  if (entriesWithCycleDay.length >= MIN_SAMPLE_SIZE) {
+    const cycleDayByTag = new Map<string, { sum: number; n: number }>();
+
+    for (const entry of entriesWithCycleDay) {
+      for (const tag of entry.tags) {
+        if (tag.tag === 'other') continue;
+        const existing = cycleDayByTag.get(tag.tag) || { sum: 0, n: 0 };
+        cycleDayByTag.set(tag.tag, {
+          sum: existing.sum + (entry.cycle_day || 0),
+          n: existing.n + 1
+        });
+      }
+    }
+
+    cycle_day_correlation = Array.from(cycleDayByTag.entries())
+      .filter(([, { n }]) => n >= MIN_SAMPLE_SIZE)
+      .map(([tag, { sum, n }]) => ({
+        tag,
+        avg_cycle_day: Math.round((sum / n) * 10) / 10,
+        n
+      }))
+      .sort((a, b) => b.n - a.n);
+  }
+
+  // Coverage gaps
+  let coverage_gap_flag = false;
+  for (let i = 1; i < dates.length; i++) {
+    const daysDiff = Math.abs(
+      (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysDiff > COVERAGE_GAP_DAYS) {
+      coverage_gap_flag = true;
+      break;
+    }
+  }
+
+  return {
+    entry_count: entries.length,
+    date_range,
+    tag_frequency,
+    severity_by_tag,
+    co_occurrence,
+    cycle_day_correlation,
+    coverage_gap_flag,
+    other_notes: otherNotes.length > 0 ? otherNotes : undefined
+  };
+}
+
+function computeCoOccurrence(entries: Entry[]): ComputedStats['co_occurrence'] {
+  const pairings = new Map<string, { lagSum: number; n: number }>();
+  const tagDates = new Map<string, Date[]>();
+
+  // Collect all dates for each tag
+  for (const entry of entries) {
+    const date = new Date(entry.created_at);
+    for (const tag of entry.tags) {
+      if (tag.tag === 'other') continue;
+      const dates = tagDates.get(tag.tag) || [];
+      dates.push(date);
+      tagDates.set(tag.tag, dates);
+    }
+  }
+
+  // Find co-occurrences
+  const tags = Array.from(tagDates.keys());
+  for (let i = 0; i < tags.length; i++) {
+    for (let j = i + 1; j < tags.length; j++) {
+      const tagA = tags[i];
+      const tagB = tags[j];
+      const datesA = tagDates.get(tagA) || [];
+      const datesB = tagDates.get(tagB) || [];
+
+      for (const dateA of datesA) {
+        for (const dateB of datesB) {
+          const daysDiff = Math.abs(
+            (dateA.getTime() - dateB.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          if (daysDiff <= CO_OCCURRENCE_WINDOW_DAYS) {
+            const key = [tagA, tagB].sort().join('::');
+            const existing = pairings.get(key) || { lagSum: 0, n: 0 };
+            pairings.set(key, {
+              lagSum: existing.lagSum + daysDiff,
+              n: existing.n + 1
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(pairings.entries())
+    .map(([key, { lagSum, n }]) => {
+      const [tag_a, tag_b] = key.split('::');
+      return {
+        tag_a,
+        tag_b,
+        lag_days_avg: Math.round((lagSum / n) * 10) / 10,
+        n,
+        low_confidence: n < MIN_SAMPLE_SIZE
+      };
+    })
+    .filter(c => c.n >= 2)
+    .sort((a, b) => b.n - a.n);
+}
+
+export function deterministicNarrative(stats: ComputedStats): string {
+  if (stats.entry_count === 0) {
+    return 'No symptom data has been logged yet. Start tracking to generate your Case File.';
+  }
+
+  const rankable = stats.tag_frequency.filter(t => t.tag !== 'other');
+  const pool = rankable.length ? rankable : stats.tag_frequency;
+  const sorted = [...pool].sort((a, b) => b.count - a.count);
+  const top = sorted[0];
+
+  if (!top) {
+    return `No structured symptom data was logged in this period (${stats.entry_count} entries).`;
+  }
+
+  const lines: string[] = [];
+  const topLabel = top.tag.replace(/_/g, ' ');
+  lines.push(
+    `${topLabel} was logged ${top.count} time${top.count > 1 ? 's' : ''} across ${stats.entry_count} entries, more than any other tracked symptom.`
+  );
+
+  if (stats.entry_count < 10) {
+    lines.push(
+      `This is based on ${stats.entry_count} entries, a short tracking window. Longer tracking will make this more reliable.`
+    );
+  }
+
+  if (stats.coverage_gap_flag) {
+    lines.push(
+      'There are gaps of more than two weeks between some entries, so this may not capture every day symptoms occurred.'
+    );
+  }
+
+  const strongCoOccurrences = stats.co_occurrence.filter(
+    c => c.n >= MIN_SAMPLE_SIZE && !c.low_confidence
+  );
+
+  for (const c of strongCoOccurrences.slice(0, 2)) {
+    const tagA = c.tag_a.replace(/_/g, ' ');
+    const tagB = c.tag_b.replace(/_/g, ' ');
+    lines.push(
+      `${tagA} and ${tagB} were logged within about ${c.lag_days_avg.toFixed(1)} days of each other, ${c.n} time${c.n > 1 ? 's' : ''}.`
+    );
+  }
+
+  lines.push(
+    'This summary was generated directly from your logged data. It is not a diagnosis.'
+  );
+
+  return lines.join(' ');
+}
