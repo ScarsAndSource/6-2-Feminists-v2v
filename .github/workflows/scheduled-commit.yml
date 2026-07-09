@@ -1,0 +1,120 @@
+name: Scheduled Commit
+
+on:
+  schedule:
+    # 6:00 AM IST = 00:30 UTC on July 10
+    - cron: '30 0 10 7 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply voice fuzzy matching and RehearsalMode gate fix
+        shell: bash
+        run: |
+          cat > /tmp/apply-fixes.cjs << 'NODE_SCRIPT'
+          const fs = require('fs');
+
+          const symptomPath = 'src/components/SymptomLogger.tsx';
+          let symptom = fs.readFileSync(symptomPath, 'utf8');
+
+          const oldMatch = [
+            '      let matched = false;',
+            '      for (const tag of TAG_VOCABULARY) {',
+            "        if (tag === 'other') continue;",
+            '        const label = TAG_LABELS[tag].toLowerCase();',
+            "        if (transcript.includes(label) || transcript.includes(tag.replace('_', ' '))) {",
+            '          if (!selectedTags.has(tag)) {',
+            '            handleTagClick(tag);',
+            '          }',
+            '          matched = true;',
+            '        }',
+            '      }',
+            '',
+            '      if (!matched && transcript) {'
+          ].join('\n');
+
+          const newMatch = [
+            '      let matched = false;',
+            '      for (const tag of TAG_VOCABULARY) {',
+            "        if (tag === 'other') continue;",
+            '        const label = TAG_LABELS[tag].toLowerCase();',
+            "        if (transcript.includes(label) || transcript.includes(tag.replace('_', ' '))) {",
+            '          if (!selectedTags.has(tag)) {',
+            '            handleTagClick(tag);',
+            '          }',
+            '          matched = true;',
+            '        }',
+            '      }',
+            '',
+            '      if (!matched && transcript) {',
+            '        const words = transcript.split(/\s+/);',
+            '        for (const tag of TAG_VOCABULARY) {',
+            "          if (tag === 'other') continue;",
+            '          const label = TAG_LABELS[tag].toLowerCase();',
+            '          const prefix = label.slice(0, 4);',
+            '          if (words.some(w => w.startsWith(prefix))) {',
+            '            if (!selectedTags.has(tag)) {',
+            '              handleTagClick(tag);',
+            '            }',
+            '            matched = true;',
+            '            break;',
+            '          }',
+            '        }',
+            '      }',
+            '',
+            '      if (!matched && transcript) {'
+          ].join('\n');
+
+          if (symptom.includes(oldMatch)) {
+            symptom = symptom.replace(oldMatch, newMatch);
+            fs.writeFileSync(symptomPath, symptom);
+            console.log('SymptomLogger.tsx — fuzzy prefix matching applied');
+          } else {
+            console.log('SymptomLogger.tsx — pattern not found, skipping');
+          }
+
+          const rehearsalPath = 'src/components/RehearsalMode.tsx';
+          let rehearsal = fs.readFileSync(rehearsalPath, 'utf8');
+
+          const oldGate = 'if (!stats || stats.entry_count < 3) {';
+          const newGate = '// At least 2 distinct symptom types needed\n  if (!stats || stats.tag_frequency.length < 2) {';
+
+          if (rehearsal.includes(oldGate)) {
+            rehearsal = rehearsal.replace(oldGate, newGate);
+            rehearsal = rehearsal.replace(
+              'Log at least 3 symptom entries to unlock Practice Mode and get personalized interview questions',
+              'Log a few different symptoms to unlock Practice Mode and get personalized interview questions'
+            );
+            rehearsal = rehearsal.replace(
+              '<span className="text-rose-600 font-bold">{stats?.entry_count || 0}/3</span>',
+              '<span className="text-rose-600 font-bold">{stats?.tag_frequency.length || 0}</span>'
+            );
+            rehearsal = rehearsal.replace(
+              '<span>entries needed</span>',
+              '<span>symptoms tracked</span>'
+            );
+            fs.writeFileSync(rehearsalPath, rehearsal);
+            console.log('RehearsalMode.tsx — gate updated');
+          } else {
+            console.log('RehearsalMode.tsx — pattern not found, skipping');
+          }
+          NODE_SCRIPT
+
+          node /tmp/apply-fixes.cjs
+
+      - name: Commit and push
+        run: |
+          git config user.name "undismissed-bot"
+          git config user.email "bot@undismissed.internal"
+          git add -A
+          git diff --cached --quiet || git commit -m "fix: add fuzzy voice matching and improve RehearsalMode gate"
+          git push
