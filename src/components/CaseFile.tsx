@@ -19,6 +19,7 @@ import { generateNarrative } from '../lib/narration';
 import { FollowupLedger } from './FollowupLedger';
 import { PetalLoader } from './PetalLoader';
 import { TextReveal } from './TextReveal';
+import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 const LOADING_MESSAGES = [
   'Computing patterns...',
@@ -123,14 +124,12 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
   if (entries.length === 0) {
     return (
       <div className="text-center py-16 px-6">
-        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center">
-          <FileText className="w-10 h-10 text-slate-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-white mb-2">No Data Yet</h3>
-        <p className="text-slate-400 mb-6 max-w-xs mx-auto">
+        <EmptyStateIllustration variant="open-journal" className="w-24 h-24" />
+        <h3 className="text-xl font-display font-semibold text-rose-950 mb-2">No Data Yet</h3>
+        <p className="text-rose-500 mb-6 max-w-xs mx-auto text-base">
           Start logging symptoms to generate your first Case File
         </p>
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-lg text-sm text-slate-500">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 rounded-full text-sm text-rose-500 border border-rose-200/50">
           <Info className="w-4 h-4" />
           <span>Need at least 1 entry to generate</span>
         </div>

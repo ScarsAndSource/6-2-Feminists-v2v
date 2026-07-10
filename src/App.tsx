@@ -199,7 +199,7 @@ function AppContent() {
                     </div>
                     <div className="text-right">
                       <div className="text-4xl font-bold font-display gradient-text number-transition">{entries.length}</div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wide font-medium">entries</div>
+                      <div className="text-sm text-slate-500 uppercase tracking-wide font-medium">entries</div>
                     </div>
                   </div>
                   <SymptomLogger
@@ -277,7 +277,7 @@ function AppContent() {
       </main>
 
       <footer className="border-t border-slate-800 py-4 px-6 relative z-10">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 text-xs text-slate-600">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 text-sm text-slate-600">
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5" />
             <span>Anonymous by design. Only aggregated stats reach the AI.</span>
@@ -345,12 +345,34 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
 
       <section className="pt-36 pb-20 px-4 sm:px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 text-sm text-teal-300 mb-8 backdrop-blur-sm fade-scale" style={{ animationDelay: '400ms', opacity: 0 }}>
-            <Sparkles className="w-4 h-4 text-teal-400 twinkle" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-100/70 border border-rose-200/50 text-sm text-rose-700 mb-6 backdrop-blur-sm fade-scale" style={{ animationDelay: '400ms', opacity: 0 }}>
+            <Sparkles className="w-4 h-4 text-rose-500 twinkle" />
             <span className="font-medium">Built for the moments when you need to be heard</span>
           </div>
 
-          <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 leading-[1.1] tracking-tight">
+          <p
+            className="font-script text-3xl text-rose-400 mb-2 leading-none text-blur-in"
+            style={{ animationDelay: '450ms' }}
+          >
+            you don't have to fight to be believed
+          </p>
+
+          <h1 className="relative font-display text-5xl sm:text-6xl lg:text-7xl font-normal text-rose-950 mb-6 leading-[1.1] tracking-tight">
+            <span className="absolute -top-6 -right-4 sm:-right-10 w-16 h-16 sm:w-20 sm:h-20 text-rose-300/50 float-element-slow pointer-events-none" aria-hidden="true">
+              <svg viewBox="0 0 90 90" fill="none" strokeWidth="1.3" strokeLinecap="round">
+                <circle cx="45" cy="45" r="7" stroke="currentColor" />
+                {Array.from({ length: 8 }).map((_, i) => {
+                  const angle = (i / 8) * Math.PI * 2;
+                  const x1 = 45 + Math.cos(angle) * 10;
+                  const y1 = 45 + Math.sin(angle) * 10;
+                  const x2 = 45 + Math.cos(angle) * 24;
+                  const y2 = 45 + Math.sin(angle) * 24;
+                  const cx = 45 + Math.cos(angle + 0.25) * 17;
+                  const cy = 45 + Math.sin(angle + 0.25) * 17;
+                  return <path key={i} d={`M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`} stroke="currentColor" opacity="0.8" />;
+                })}
+              </svg>
+            </span>
             <TextReveal text="Your symptoms," delay={500} staggerMs={60} />
             <br />
             <span className="gradient-text animate-gradient-text text-blur-in" style={{ animationDelay: '800ms' }}>

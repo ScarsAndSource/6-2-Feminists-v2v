@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Heart } from 'lucide-react';
 import type { ComputedStats } from '../lib/types';
 import { getTagLabel } from '../lib/tagLabels';
+import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 function cardTilt(i: number) {
   const seeds = [-1.6, 1.2, -0.8, 1.8, -1.3];
@@ -16,11 +17,9 @@ export function RehearsalMode({ stats }: RehearsalModeProps) {
   if (!stats || stats.entry_count < 3) {
     return (
       <div className="text-center py-12 px-6">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-white/60 border border-rose-200/50 mb-6 shadow-soft float-element">
-          <MessageCircle className="w-8 h-8 text-rose-300" />
-        </div>
-        <h3 className="text-lg font-display font-semibold text-rose-950 mb-2">Build Your Data First</h3>
-        <p className="text-rose-500 mb-6 max-w-sm mx-auto text-sm">
+        <EmptyStateIllustration variant="dormant-bud" />
+        <h3 className="text-xl font-display font-semibold text-rose-950 mb-2">Build Your Data First</h3>
+        <p className="text-rose-500 mb-6 max-w-sm mx-auto text-base">
           Log at least 3 symptom entries to unlock Practice Mode and get personalized interview questions
         </p>
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 rounded-full text-sm text-rose-500 border border-rose-200/50">

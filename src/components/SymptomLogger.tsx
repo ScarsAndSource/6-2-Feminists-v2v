@@ -219,10 +219,10 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled }: Symp
       <div className="space-y-6">
         {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags]) => (
           <div key={category}>
-            <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">
+            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
               {CATEGORY_LABELS[category]}
             </h4>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {tags.map(tag => (
                 <SymptomTag
                   key={tag}
@@ -467,7 +467,7 @@ function SymptomTag({
       <button
         onClick={onClick}
         disabled={disabled}
-        className={`tag-button px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+        className={`tag-button min-h-[44px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 ${
           isSelected
             ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
             : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent'
@@ -477,13 +477,15 @@ function SymptomTag({
       </button>
 
       {isSelected && severity && tag !== 'other' && (
-        <div className="flex items-center bg-slate-800 rounded-lg p-0.5 animate-scale-in">
+        <div className="flex items-center bg-slate-800 rounded-xl p-1 gap-0.5 animate-scale-in">
           {[1, 2, 3, 4, 5].map(sev => (
             <button
               key={sev}
               onClick={() => onSeverityChange(sev)}
-              className={`severity-pill w-6 h-6 rounded-md text-xs font-medium transition-all ${
-                severity === sev ? 'active bg-teal-500 text-white' : 'text-slate-500 hover:text-white hover:bg-slate-700'
+              className={`severity-pill w-8 h-8 rounded-lg text-sm font-bold transition-all ${
+                severity === sev
+                  ? 'active bg-teal-500 text-white'
+                  : 'text-slate-500 hover:text-white hover:bg-slate-700'
               }`}
               title={SEVERITY_LABELS[sev]}
             >

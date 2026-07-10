@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Clock, Trash2 } from 'lucide-react';
 import type { Entry } from '../lib/types';
 import { getTagLabel } from '../lib/tagLabels';
+import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 interface EntryHistoryProps {
   entries: Entry[];
@@ -29,11 +30,9 @@ export function EntryHistory({ entries, onDelete, loading }: EntryHistoryProps) 
   if (entries.length === 0) {
     return (
       <div className="text-center py-12 px-4">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center">
-          <Clock className="w-7 h-7 text-slate-600" />
-        </div>
-        <p className="text-sm text-slate-500 mb-1">No entries yet</p>
-        <p className="text-xs text-slate-600">Your logged symptoms will appear here</p>
+        <EmptyStateIllustration variant="seedling" />
+        <p className="text-base text-rose-600 mb-1 font-semibold">No entries yet</p>
+        <p className="text-sm text-rose-400">Your logged symptoms will appear here</p>
       </div>
     );
   }
