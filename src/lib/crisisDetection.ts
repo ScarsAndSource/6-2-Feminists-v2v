@@ -1,0 +1,3 @@
+const CRISIS_PATTERNS = ['kill myself', 'end my life', 'want to die', 'better off dead', 'no reason to live', 'hurt myself', 'end it all', "can't go on", 'not worth living', 'suicide', 'no point in living'];
+export const detectsCrisis = (text: string) => CRISIS_PATTERNS.some(pattern => text.toLowerCase().includes(pattern));
+export const CRISIS_RESPONSE = "I'm really glad you told me this, and I want to take it seriously. This is bigger than something I can help with on my own, but you don't have to sit with it alone right now. In India, you can reach iCall at 9152987821 or the KIRAN mental health helpline at 1800-599-0019. If you're elsewhere, please reach a local crisis line or someone you trust right now. I'll be here with you for a moment.";
