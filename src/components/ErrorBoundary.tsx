@@ -36,15 +36,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-coral-500/10 border border-coral-500/20 flex items-center justify-center">
             <AlertTriangle className="w-8 h-8 text-coral-400" />
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">
+          <h3 className="text-lg font-semibold text-rose-800 mb-2">
             {this.props.fallbackLabel || 'Something went wrong displaying this'}
           </h3>
-          <p className="text-slate-400 mb-6 max-w-sm mx-auto text-sm">
+          <p className="text-rose-500 mb-6 max-w-sm mx-auto text-sm">
             Your data is safe. Try again, or refresh the page.
           </p>
           <button
             onClick={this.handleReset}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium rounded-lg transition-all"
           >
             <RefreshCw className="w-4 h-4" />
             Try again

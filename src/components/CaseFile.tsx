@@ -179,16 +179,16 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
         <div className="no-print">
           <div className="gradient-border">
             <div className="p-6 sm:p-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 mb-4 shadow-glow">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 mb-4 shadow-glow">
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">{entries.length} entries ready</h3>
-              <p className="text-slate-400 mb-6 text-sm">
+              <h3 className="text-xl font-semibold text-rose-800 mb-2">{entries.length} entries ready</h3>
+              <p className="text-rose-500 mb-6 text-sm">
                 Generate a clinical summary to bring to your next appointment
               </p>
               <button
                 onClick={handleGenerate}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-semibold rounded-xl transition-all shadow-glow hover:shadow-lg hover:scale-[1.02]"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white font-semibold rounded-xl transition-all shadow-glow hover:shadow-lg hover:scale-[1.02]"
               >
                 <FileText className="w-5 h-5" />
                 Generate Case File
@@ -205,21 +205,21 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
       {stats && narrative && !loading && (
         <div className="space-y-4 animate-fade-in">
           <div className="no-print flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <div className="w-2 h-2 rounded-full bg-teal-500" />
+            <div className="flex items-center gap-2 text-sm text-rose-500">
+              <div className="w-2 h-2 rounded-full bg-rose-400" />
               <span>Generated with {provider === 'template' ? 'deterministic analysis' : `AI (${provider})`}</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium rounded-lg transition-all"
               >
                 <Printer className="w-4 h-4" />
                 Print / PDF
               </button>
               <button
                 onClick={handleGenerate}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-rose-100/50 hover:bg-rose-100 text-rose-400 hover:text-rose-600 rounded-lg transition-all"
               >
                 <Download className="w-4 h-4" />
               </button>
@@ -227,15 +227,15 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
           </div>
 
           {delta && (delta.newTags.length > 0 || delta.resolvedTags.length > 0) && (
-            <div className="bg-white/80 border border-teal-200/50 rounded-xl px-5 py-4 text-sm animate-fade-in">
-              <div className="flex items-center gap-2 text-teal-700 font-semibold mb-2">
+            <div className="bg-white/80 border border-rose-200/50 rounded-xl px-5 py-4 text-sm animate-fade-in">
+              <div className="flex items-center gap-2 text-rose-600 font-semibold mb-2">
                 <Sparkles className="w-4 h-4" />
                 Since your last Case File
               </div>
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-slate-600">
                 {delta.newTags.length > 0 && (
                   <span className="flex items-center gap-1.5">
-                    <ArrowUp className="w-3.5 h-3.5 text-teal-500" />
+                    <ArrowUp className="w-3.5 h-3.5 text-rose-500" />
                     New: {delta.newTags.map(getTagLabel).join(', ')}
                   </span>
                 )}
@@ -260,7 +260,7 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center">
                       <Heart className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-sm font-medium text-slate-500">HerWellness</span>
@@ -325,7 +325,7 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
                           <div className="flex items-center gap-2">
                             <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-teal-500 rounded-full"
+                                className="h-full bg-rose-500 rounded-full"
                                 style={{
                                   width: `${(t.count / Math.max(...stats.tag_frequency.map(x => x.count))) * 100}%`
                                 }}
@@ -385,7 +385,7 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
                       .slice(0, 3)
                       .map(c => (
                         <div key={`${c.tag_a}-${c.tag_b}`} className="flex items-start gap-2 text-sm text-slate-600">
-                          <div className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5 shrink-0" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
                           <span>
                             <strong className="text-slate-700">{getTagLabel(c.tag_a)}</strong> and{' '}
                             <strong className="text-slate-700">{getTagLabel(c.tag_b)}</strong> appeared together{' '}
@@ -423,7 +423,7 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
 function StatPill({ value, label }: { value: number; label: string }) {
   return (
     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm">
-      <span className="text-lg font-bold text-teal-600">{value}</span>
+      <span className="text-lg font-bold text-rose-600">{value}</span>
       <span className="text-xs text-slate-500">{label}</span>
     </div>
   );

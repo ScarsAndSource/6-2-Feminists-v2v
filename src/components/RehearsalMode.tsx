@@ -134,12 +134,12 @@ export function RehearsalMode({ stats }: RehearsalModeProps) {
                     <span className="italic">{q.context}</span>
                   </div>
                   {spokenAnswers[i] && (
-                    <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-xl text-sm text-teal-800 relative">
+                    <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 relative">
                       <div className="flex items-start gap-2">
                         <span className="flex-1">{spokenAnswers[i]}</span>
                         <button
                           onClick={() => setSpokenAnswers(prev => { const n = { ...prev }; delete n[i]; return n; })}
-                          className="text-teal-400 hover:text-teal-600 shrink-0"
+                          className="text-rose-400 hover:text-rose-600 shrink-0"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -153,7 +153,7 @@ export function RehearsalMode({ stats }: RehearsalModeProps) {
                         isListening && listeningIndex === i
                           ? 'bg-coral-500/20 text-coral-600 border border-coral-500/30 voice-pulse'
                           : spokenAnswers[i]
-                            ? 'bg-teal-100 text-teal-600 hover:bg-teal-200'
+                            ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
                             : 'bg-rose-50 text-rose-400 hover:bg-rose-100 hover:text-rose-600'
                       }`}
                     >

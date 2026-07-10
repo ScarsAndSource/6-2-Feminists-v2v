@@ -39,11 +39,11 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
   };
 
   return (
-    <div className="mt-4 border-t border-slate-800/50 pt-4 no-print">
+    <div className="mt-4 border-t border-rose-200/50 pt-4 no-print">
       {!saved ? (
-        <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-white">
-            <MessageSquareText className="w-4 h-4 text-teal-400" />
+        <div className="bg-rose-100/50 border border-rose-200/50 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-rose-800">
+            <MessageSquareText className="w-4 h-4 text-rose-400" />
             Have you mentioned this to a doctor before? (optional)
           </div>
           <div className="flex gap-2">
@@ -51,8 +51,8 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
               onClick={() => setMentionedBefore(true)}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                 mentionedBefore === true
-                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
-                  : 'bg-slate-800/50 text-slate-400 border border-transparent hover:text-white'
+                  ? 'bg-rose-500/20 text-rose-600 border border-rose-500/40'
+                  : 'bg-rose-100/50 text-rose-400 border border-transparent hover:text-rose-700'
               }`}
             >
               Yes
@@ -61,8 +61,8 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
               onClick={() => setMentionedBefore(false)}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                 mentionedBefore === false
-                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
-                  : 'bg-slate-800/50 text-slate-400 border border-transparent hover:text-white'
+                  ? 'bg-rose-500/20 text-rose-600 border border-rose-500/40'
+                  : 'bg-rose-100/50 text-rose-400 border border-transparent hover:text-rose-700'
               }`}
             >
               No, first time
@@ -78,8 +78,8 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
                     onClick={() => setOutcome(opt.value)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       outcome === opt.value
-                        ? 'bg-teal-500 text-white'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                        ? 'bg-rose-400 text-white'
+                        : 'bg-rose-100 text-rose-400 hover:text-rose-700'
                     }`}
                   >
                     {opt.label}
@@ -92,7 +92,7 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
                 onChange={e => setNote(e.target.value)}
                 placeholder="What did they say? (optional)"
                 maxLength={200}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="w-full px-3 py-2 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-800 placeholder-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-500"
               />
             </div>
           )}
@@ -101,14 +101,14 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
             <button
               onClick={handleSave}
               disabled={saving || (mentionedBefore === true && !outcome)}
-              className="w-full py-2 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
+              className="w-full py-2 bg-rose-500 hover:bg-rose-400 disabled:bg-rose-200 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm text-teal-400 px-1">
+        <div className="flex items-center gap-2 text-sm text-rose-500 px-1">
           <Check className="w-4 h-4" />
           Logged to your follow-up history
         </div>
@@ -116,13 +116,13 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
 
       {followups.length > 0 && (
         <div className="mt-4">
-          <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+          <h4 className="text-xs font-medium text-rose-400 uppercase tracking-wider mb-2">
             Follow-up history
           </h4>
           <div className="space-y-1.5">
             {followups.slice(0, 5).map(f => (
-              <div key={f.id} className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/40 rounded-lg px-3 py-2">
-                <span className="text-slate-600">
+              <div key={f.id} className="flex items-center gap-2 text-xs text-rose-500 bg-rose-100/40 rounded-lg px-3 py-2">
+                <span className="text-rose-400">
                   {new Date(f.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
                 <span>

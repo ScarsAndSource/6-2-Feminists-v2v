@@ -40,11 +40,11 @@ export function EntryHistory({ entries, onDelete, loading }: EntryHistoryProps) 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-sm font-medium text-slate-400">
+        <h3 className="flex items-center gap-2 text-sm font-medium text-rose-500">
           <Clock className="w-4 h-4" />
           Recent Entries
         </h3>
-        <span className="text-xs text-slate-600 px-2 py-1 bg-slate-800/30 rounded-md">
+        <span className="text-xs text-rose-400 px-2 py-1 bg-rose-100/50 rounded-md">
           {entries.length} total
         </span>
       </div>
@@ -111,7 +111,7 @@ export function EntryHistory({ entries, onDelete, loading }: EntryHistoryProps) 
 
       {entries.length > 8 && (
         <div className="text-center pt-2">
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-rose-400">
             Showing 8 most recent of {entries.length} entries
           </span>
         </div>

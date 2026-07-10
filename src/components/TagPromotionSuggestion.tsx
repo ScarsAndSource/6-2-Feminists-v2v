@@ -36,8 +36,8 @@ export function TagPromotionSuggestion({ entries }: TagPromotionSuggestionProps)
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 bg-teal-500/10 border border-teal-500/20 rounded-xl px-4 py-3 mb-4 animate-fade-in">
-      <div className="flex items-center gap-2 text-sm text-teal-200">
+    <div className="flex items-center justify-between gap-3 bg-rose-500/10 border border-rose-200/50 rounded-xl px-4 py-3 mb-4 animate-fade-in">
+      <div className="flex items-center gap-2 text-sm text-rose-600">
         <Sparkles className="w-4 h-4 shrink-0" />
         <span>
           You've described "{suggestion.representativeNote}" {suggestion.count} times — add it as a tag you can track?
@@ -47,11 +47,11 @@ export function TagPromotionSuggestion({ entries }: TagPromotionSuggestionProps)
         <button
           onClick={handleAdd}
           disabled={adding}
-          className="px-3 py-1.5 bg-teal-500 hover:bg-teal-400 text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50"
+          className="px-3 py-1.5 bg-rose-500 hover:bg-rose-400 text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50"
         >
           {adding ? 'Adding...' : 'Add tag'}
         </button>
-        <button onClick={() => setDismissedNote(suggestion.representativeNote)} className="text-teal-300/60 hover:text-teal-200">
+        <button onClick={() => setDismissedNote(suggestion.representativeNote)} className="text-rose-400/60 hover:text-rose-500">
           <X className="w-4 h-4" />
         </button>
       </div>

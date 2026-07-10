@@ -247,7 +247,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
               }
               setSelectedTags(map);
             }}
-            className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-sm text-teal-300 hover:bg-teal-500/20 transition-all"
+            className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-200/50 text-sm text-rose-600 hover:bg-rose-500/20 transition-all"
           >
             <Sparkles className="w-4 h-4 shrink-0" />
             <span>Same as last time ({lastEntry.tags.length} symptom{lastEntry.tags.length > 1 ? 's' : ''})</span>
@@ -256,7 +256,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
         )}
         {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags]) => (
           <div key={category}>
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
+            <h4 className="text-sm font-bold text-rose-500 uppercase tracking-wider mb-3">
               {CATEGORY_LABELS[category]}
             </h4>
             <div className="flex flex-wrap gap-2.5">
@@ -282,7 +282,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
 
         {customTags.length > 0 && (
           <div>
-            <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">
+            <h4 className="text-xs font-medium text-rose-400 uppercase tracking-wider mb-3">
               Your Tags
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -311,13 +311,13 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
             onClick={() => setShowCycleInput(!showCycleInput)}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
               showCycleInput || cycleDay
-                ? 'bg-slate-800 text-teal-400 border border-teal-500/30'
-                : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-rose-100 text-rose-500 border border-rose-300/50'
+                : 'bg-rose-100/50 text-rose-400 hover:text-rose-700 hover:bg-rose-200'
             }`}
           >
             {showCycleInput ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             <span>Cycle Day</span>
-            {cycleDay && <span className="text-teal-400 font-medium ml-1">· {cycleDay}</span>}
+            {cycleDay && <span className="text-rose-500 font-medium ml-1">· {cycleDay}</span>}
           </button>
 
           {speechSupported && (
@@ -327,7 +327,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
                 isListening
                   ? 'bg-coral-500/20 text-coral-400 border border-coral-500/30 voice-pulse'
-                  : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800'
+                  : 'bg-rose-100/50 text-rose-400 hover:text-rose-700 hover:bg-rose-200'
               }`}
             >
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -345,12 +345,12 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
       </div>
 
       {showCycleInput && (
-        <div className="animate-slide-down bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <label className="text-sm text-slate-400 mb-2 block">
+        <div className="animate-slide-down bg-rose-100/50 rounded-xl p-4 border border-rose-200/50">
+          <label className="text-sm text-rose-500 mb-2 block">
             Day of menstrual cycle (optional)
           </label>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-slate-900 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-rose-100 rounded-lg p-1">
               {[1, 2, 3, 4].map(week => (
                 <div key={week} className="flex flex-col">
                   <div className="flex gap-0.5">
@@ -364,8 +364,8 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
                           onClick={() => setCycleDay(dayNum)}
                           className={`w-7 h-7 rounded text-xs font-medium transition-all ${
                             isSelected
-                              ? 'bg-teal-500 text-white'
-                              : 'hover:bg-slate-800 text-slate-500 hover:text-white'
+                              ? 'bg-rose-400 text-white'
+                              : 'hover:bg-rose-200 text-rose-400 hover:text-rose-700'
                           }`}
                         >
                           {dayNum}
@@ -376,7 +376,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
                 </div>
               ))}
             </div>
-            <button onClick={() => setCycleDay('')} className="text-xs text-slate-500 hover:text-slate-300">
+            <button onClick={() => setCycleDay('')} className="text-xs text-rose-400 hover:text-rose-600">
               Clear
             </button>
           </div>
@@ -391,7 +391,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="flex flex-wrap gap-2 p-3 bg-slate-800/30 rounded-xl border border-slate-700/30 overflow-hidden"
+              className="flex flex-wrap gap-2 p-3 bg-rose-100/50 rounded-xl border border-rose-200/50 overflow-hidden"
             >
               <AnimatePresence mode="popLayout">
                 {selectedArray.map((entry) => (
@@ -402,12 +402,12 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.5, filter: 'blur(2px)' }}
                     transition={{ type: 'spring', stiffness: 400, damping: 26 }}
-                    className="flex items-center gap-1.5 bg-slate-900 rounded-lg px-2 py-1 text-sm"
+                    className="flex items-center gap-1.5 bg-rose-200 rounded-lg px-2 py-1 text-sm"
                   >
-                    <span className="text-white">
+                    <span className="text-rose-800">
                       {entry.tag === 'other' ? `"${entry.note?.slice(0, 12)}..."` : getTagLabel(entry.tag)}
                     </span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 font-medium">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-500 font-medium">
                       {entry.severity}
                     </span>
                   </motion.div>
@@ -420,7 +420,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
         <button
           onClick={handleSubmit}
           disabled={disabled || submitting || selectedTags.size === 0}
-          className="group relative w-full py-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg overflow-hidden"
+          className="group relative w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg overflow-hidden"
         >
           {submitting ? (
             <>
@@ -453,15 +453,15 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
       </div>
 
       {selectedTags.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-md border-t border-teal-500/20 px-4 py-3 sm:py-3">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-rose-50/95 backdrop-blur-md border-t border-rose-200/50 px-4 py-3 sm:py-3">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <span className="text-sm text-slate-400">
-              <span className="font-semibold text-white">{selectedTags.size}</span> selected
+            <span className="text-sm text-rose-500">
+              <span className="font-semibold text-rose-800">{selectedTags.size}</span> selected
             </span>
             <button
               onClick={handleSubmit}
               disabled={disabled || submitting}
-              className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all flex items-center gap-2"
+              className="px-6 py-2.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all flex items-center gap-2"
             >
               {submitting ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Logging...</>
@@ -475,22 +475,22 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
 
       {undoEntryId && (
         <div className={`fixed ${selectedTags.size > 0 ? 'bottom-20' : 'bottom-6'} left-1/2 -translate-x-1/2 z-50 toast`}>
-          <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-2xl px-5 py-3 shadow-2xl">
-            <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center shrink-0">
-              <Check className="w-4 h-4 text-teal-400" />
+          <div className="flex items-center gap-3 bg-rose-100 border border-rose-200 rounded-2xl px-5 py-3 shadow-2xl">
+            <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4 text-rose-500" />
             </div>
-            <span className="text-sm text-white font-medium">Symptoms logged</span>
+            <span className="text-sm text-rose-800 font-medium">Symptoms logged</span>
             <button
               onClick={handleUndo}
               disabled={undoing}
-              className="flex items-center gap-1.5 text-sm font-semibold text-teal-400 hover:text-teal-300 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-50 transition-colors"
             >
               <Undo2 className="w-4 h-4" />
               {undoing ? 'Undoing...' : 'Undo'}
             </button>
             <button
               onClick={() => setUndoEntryId(null)}
-              className="text-slate-500 hover:text-white transition-colors"
+              className="text-rose-400 hover:text-rose-600 transition-colors"
               title="Dismiss (keeps the entry)"
             >
               <X className="w-4 h-4" />
@@ -568,8 +568,8 @@ function SymptomTag({
         disabled={disabled}
         className={`tag-button min-h-[44px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 ${
           isSelected
-            ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
-            : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent'
+            ? 'bg-rose-500/20 text-rose-600 border border-rose-500/40'
+            : 'bg-rose-100/50 text-rose-500 hover:text-rose-700 hover:bg-rose-200 border border-transparent'
         }`}
       >
         {label}
@@ -582,16 +582,16 @@ function SymptomTag({
           onPointerMove={handleSeverityPointerMove}
           onPointerUp={handleSeverityPointerUp}
           onPointerLeave={handleSeverityPointerUp}
-          className="relative w-28 h-8 bg-slate-800 rounded-xl overflow-hidden cursor-pointer select-none animate-scale-in touch-none"
+          className="relative w-28 h-8 bg-rose-200 rounded-xl overflow-hidden cursor-pointer select-none animate-scale-in touch-none"
         >
           <div
             className="absolute inset-y-0 left-0 rounded-xl transition-[width] duration-75"
             style={{
               width: `${(severity / 5) * 100}%`,
-              background: `linear-gradient(90deg, rgba(20,184,166,0.4) 0%, rgba(20,184,166,0.7) 100%)`,
+              background: `linear-gradient(90deg, rgba(190,18,60,0.4) 0%, rgba(190,18,60,0.7) 100%)`,
             }}
           />
-          <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-rose-900 pointer-events-none">
             {severity} — {SEVERITY_LABELS[severity]}
           </div>
         </div>
@@ -605,19 +605,19 @@ function SymptomTag({
             onChange={e => onOtherTextChange(e.target.value)}
             placeholder="Describe..."
             disabled={disabled}
-            className="w-32 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500 animate-scale-in"
+            className="w-32 px-2 py-1 bg-rose-50 border border-rose-300 rounded-lg text-sm text-rose-800 placeholder-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-500 animate-scale-in"
             autoFocus
             maxLength={60}
           />
           {matchingSuggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-xl z-20">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-rose-50 border border-rose-200 rounded-lg overflow-hidden shadow-xl z-20">
               {matchingSuggestions.map((s, i) => (
                 <button
                   key={i}
                   onClick={() => onOtherTextChange(s)}
-                  className="w-full text-left px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1.5"
+                  className="w-full text-left px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-200 hover:text-rose-800 transition-colors flex items-center gap-1.5"
                 >
-                  <History className="w-3 h-3 shrink-0 text-slate-500" />
+                  <History className="w-3 h-3 shrink-0 text-rose-400" />
                   <span className="truncate">{s}</span>
                 </button>
               ))}

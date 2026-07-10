@@ -162,12 +162,12 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col no-print relative bg-slate-950">
+    <div className="min-h-screen flex flex-col no-print relative bg-rose-50">
       <CycleAmbientBackground phase={cyclePhase} focusMode={focusMode} />
       <BotanicalLayer tint={phaseTheme.accent} focusMode={focusMode} />
       <ParticleField count={14} focusMode={focusMode} />
 
-      <header className="sticky top-0 z-50 glass border-b border-teal-500/20">
+      <header className="sticky top-0 z-50 glass border-b border-rose-200/50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between">
             <button
@@ -175,18 +175,18 @@ function AppContent() {
               className="group flex items-center gap-2.5"
             >
               <div className="relative">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-glow-soft transition-all group-hover:scale-110 group-hover:rotate-6">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-glow-soft transition-all group-hover:scale-110 group-hover:rotate-6">
                   <Heart className="w-5 h-5 text-white heartbeat" fill="white" />
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-slate-900 twinkle" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-rose-300 border-2 border-rose-100 twinkle" />
               </div>
-              <span className="font-display font-semibold text-white tracking-tight hidden sm:block text-lg">
+              <span className="font-display font-semibold text-rose-800 tracking-tight hidden sm:block text-lg">
                 HerWellness
               </span>
             </button>
 
             <nav className="flex items-center">
-              <div className="flex items-center bg-slate-800/50 rounded-2xl p-1 border border-slate-700/50">
+              <div className="flex items-center bg-rose-100/70 rounded-2xl p-1 border border-rose-200/50">
                 <TabButton
                   active={activeTab === 'log'}
                   onClick={() => setActiveTab('log')}
@@ -213,23 +213,23 @@ function AppContent() {
             </nav>
 
             <div className="flex items-center gap-2 opacity-70">
-              <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse-soft" />
-              <span className="text-xs text-teal-400 hidden sm:block font-medium">{demoMode ? 'Sample' : 'Synced'}</span>
+              <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse-soft" />
+              <span className="text-xs text-rose-400 hidden sm:block font-medium">{demoMode ? 'Sample' : 'Synced'}</span>
             </div>
           </div>
         </div>
       </header>
 
       {demoMode && (
-        <div className="bg-teal-500/10 border-b border-teal-500/20 px-4 py-2 relative z-10">
+        <div className="bg-rose-500/10 border-b border-rose-200/50 px-4 py-2 relative z-10">
           <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 text-sm">
-            <div className="flex items-center gap-2 text-teal-300">
+            <div className="flex items-center gap-2 text-rose-600">
               <Sparkles className="w-4 h-4" />
               <span>You're viewing sample data. Nothing here is saved to your account.</span>
             </div>
             <button
               onClick={exitDemo}
-              className="flex items-center gap-1.5 text-teal-400 hover:text-teal-200 transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-rose-500 hover:text-rose-700 transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
               Exit sample
@@ -245,20 +245,20 @@ function AppContent() {
               <TagPromotionSuggestion entries={activeEntries} />
               <AppointmentPrompt />
               {showNudge && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-teal-500/10 border border-teal-500/20 rounded-xl text-sm animate-fade-in">
-                  <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span className="text-teal-300 flex-1">
+                <div className="flex items-center gap-3 px-4 py-3 bg-rose-500/10 border border-rose-200/50 rounded-xl text-sm animate-fade-in">
+                  <Sparkles className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span className="text-rose-600 flex-1">
                     {entries.length} entries logged — your Case File just got richer
                   </span>
                   <button
                     onClick={() => setActiveTab('casefile')}
-                    className="text-teal-400 hover:text-teal-200 font-semibold transition-colors shrink-0"
+                    className="text-rose-500 hover:text-rose-700 font-semibold transition-colors shrink-0"
                   >
                     View
                   </button>
                   <button
                     onClick={() => setShowNudge(false)}
-                    className="text-slate-500 hover:text-white transition-colors shrink-0"
+                    className="text-rose-400 hover:text-rose-600 transition-colors shrink-0"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -268,10 +268,10 @@ function AppContent() {
                 <div className="p-6 sm:p-8">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h2 className="font-display text-2xl font-semibold text-white mb-1">
+                      <h2 className="font-display text-2xl font-semibold text-rose-800 mb-1">
                         <TextReveal text="How are you feeling today?" delay={100} staggerMs={30} />
                       </h2>
-                      <p className="text-sm text-slate-400 text-slide-left" style={{ animationDelay: '300ms', opacity: 0 }}>
+                      <p className="text-sm text-rose-500 text-slide-left" style={{ animationDelay: '300ms', opacity: 0 }}>
                         Select symptoms, adjust severity, and log your experience
                       </p>
                     </div>
@@ -279,7 +279,7 @@ function AppContent() {
                       <CycleConstellation entries={activeEntries} size={64} />
                       <div className="text-right">
                         <div className="text-4xl font-bold font-display gradient-text number-transition">{entries.length}</div>
-                        <div className="text-sm text-slate-500 uppercase tracking-wide font-medium">entries</div>
+                        <div className="text-sm text-rose-400 uppercase tracking-wide font-medium">entries</div>
                       </div>
                     </div>
                   </div>
@@ -307,15 +307,15 @@ function AppContent() {
           <div className="max-w-3xl mx-auto animate-fade-in">
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h2 className="font-display text-2xl font-semibold text-white mb-1">
+                <h2 className="font-display text-2xl font-semibold text-rose-800 mb-1">
                   <TextReveal text={demoMode ? 'Sample Case File' : 'Your Case File'} delay={100} />
                 </h2>
-                <p className="text-sm text-slate-400 text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
+                <p className="text-sm text-rose-500 text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
                   A clinical summary ready for your next appointment
                 </p>
               </div>
               {activeEntries.length > 0 && (
-                <div className="flex items-center gap-3 text-sm text-slate-500">
+                <div className="flex items-center gap-3 text-sm text-rose-400">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
                     <span>
@@ -330,7 +330,7 @@ function AppContent() {
             </div>
 
             {demoMode && demo.loading && (
-              <div className="text-center py-16 text-slate-400 text-sm">Loading sample data...</div>
+              <div className="text-center py-16 text-rose-500 text-sm">Loading sample data...</div>
             )}
             {demoMode && demo.error && (
               <div className="text-center py-16 text-red-400 text-sm">{demo.error}</div>
@@ -349,10 +349,10 @@ function AppContent() {
         {activeTab === 'rehearsal' && (
           <div className="max-w-2xl mx-auto animate-fade-in">
             <div className="mb-6">
-              <h2 className="font-display text-2xl font-semibold text-white mb-1">
+              <h2 className="font-display text-2xl font-semibold text-rose-800 mb-1">
                 <TextReveal text="Practice Mode" delay={100} />
               </h2>
-              <p className="text-sm text-slate-400 text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
+              <p className="text-sm text-rose-500 text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
                 Rehearse explaining your symptoms with personalized questions
               </p>
             </div>
@@ -361,15 +361,15 @@ function AppContent() {
         )}
       </main>
 
-      <footer className="border-t border-slate-800 py-4 px-6 relative z-10">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 text-sm text-slate-600">
+      <footer className="border-t border-rose-200 py-4 px-6 relative z-10">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 text-sm text-rose-400">
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5" />
             <span>Anonymous by design. Only aggregated stats reach the AI.</span>
           </div>
           {activeEntries.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
               <span>{activeEntries.length} logged</span>
             </div>
           )}
@@ -381,19 +381,19 @@ function AppContent() {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-slate-950">
+    <div className="min-h-screen flex items-center justify-center relative bg-rose-50">
       <CycleAmbientBackground phase={null} />
       <BotanicalLayer tint="#e8679b" />
       <div className="text-center relative z-10">
-        <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-glow animate-pulse-soft">
+        <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-glow animate-pulse-soft">
           <Heart className="w-10 h-10 text-white heartbeat" fill="white" />
         </div>
-        <div className="flex items-center gap-1.5 text-teal-400 justify-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="flex items-center gap-1.5 text-rose-400 justify-center">
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>
-        <p className="mt-4 text-sm text-slate-400 font-medium text-blur-in" style={{ animationDelay: '400ms' }}>
+        <p className="mt-4 text-sm text-rose-500 font-medium text-blur-in" style={{ animationDelay: '400ms' }}>
           Loading your wellness space...
         </p>
       </div>
@@ -403,23 +403,23 @@ function LoadingScreen() {
 
 function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSample: () => void }) {
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-950">
+    <div className="min-h-screen relative overflow-hidden bg-rose-50">
       <ParticleField count={22} />
 
-      <nav className="fixed top-0 left-0 right-0 z-50 glass-subtle border-b border-teal-500/20">
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-subtle border-b border-rose-200/50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-glow-soft">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-glow-soft">
               <Heart className="w-5 h-5 text-white heartbeat" fill="white" />
             </div>
-            <span className="font-display font-semibold text-white tracking-tight text-lg text-blur-in" style={{ animationDelay: '200ms' }}>
+            <span className="font-display font-semibold text-rose-800 tracking-tight text-lg text-blur-in" style={{ animationDelay: '200ms' }}>
               HerWellness
             </span>
           </div>
 
           <button
             onClick={onStart}
-            className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-full font-semibold text-sm hover:from-teal-400 hover:to-teal-500 transition-all hover:scale-105 shadow-glow-soft fade-scale"
+            className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-full font-semibold text-sm hover:from-rose-400 hover:to-rose-500 transition-all hover:scale-105 shadow-glow-soft fade-scale"
             style={{ animationDelay: '300ms', opacity: 0 }}
           >
             Get Started
@@ -465,7 +465,7 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed text-blur-in" style={{ animationDelay: '1000ms' }}>
+          <p className="text-lg sm:text-xl text-rose-500 mb-10 max-w-2xl mx-auto leading-relaxed text-blur-in" style={{ animationDelay: '1000ms' }}>
             We can't change how a doctor listens. We make sure what you bring them
             can't be waved off as memory, anecdote, or stress.
           </p>
@@ -473,7 +473,7 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 fade-scale" style={{ animationDelay: '1200ms', opacity: 0 }}>
             <button
               onClick={onStart}
-              className="group w-full sm:w-auto px-7 py-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-semibold rounded-full transition-all shadow-glow hover:shadow-lg hover:scale-[1.03] flex items-center justify-center gap-2 glow-pulse"
+              className="group w-full sm:w-auto px-7 py-4 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white font-semibold rounded-full transition-all shadow-glow hover:shadow-lg hover:scale-[1.03] flex items-center justify-center gap-2 glow-pulse"
             >
               Start Tracking Now
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -481,30 +481,30 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
 
             <button
               onClick={onViewSample}
-              className="group w-full sm:w-auto px-7 py-4 bg-slate-800/70 hover:bg-slate-700 text-slate-200 font-medium rounded-full transition-all border border-slate-700/60 backdrop-blur-sm flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-card"
+              className="group w-full sm:w-auto px-7 py-4 bg-rose-100/70 hover:bg-rose-200 text-rose-700 font-medium rounded-full transition-all border border-rose-200/60 backdrop-blur-sm flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-card"
             >
-              <FileText className="w-5 h-5 text-teal-400 group-hover:sway" />
+              <FileText className="w-5 h-5 text-rose-400 group-hover:sway" />
               View Sample Case File
             </button>
           </div>
 
           <div className="relative max-w-xl mx-auto fade-scale" style={{ animationDelay: '1400ms', opacity: 0 }}>
-            <div className="absolute -inset-3 bg-gradient-to-r from-teal-500/20 via-emerald-500/15 to-teal-500/20 rounded-3xl blur-2xl opacity-60 bloom" />
-            <div className="relative bg-slate-800/80 backdrop-blur-md rounded-3xl p-7 border border-slate-700/50 shadow-card shimmer-overlay">
+            <div className="absolute -inset-3 bg-gradient-to-r from-rose-500/20 via-rose-400/15 to-rose-500/20 rounded-3xl blur-2xl opacity-60 bloom" />
+            <div className="relative bg-white/80 backdrop-blur-md rounded-3xl p-7 border border-rose-200/50 shadow-card shimmer-overlay">
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-600 flex items-center justify-center shadow-soft">
-                  <FileText className="w-6 h-6 text-teal-400 sway" />
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center shadow-soft">
+                  <FileText className="w-6 h-6 text-rose-400 sway" />
                 </div>
                 <div className="flex-1 text-left">
-                  <h3 className="font-display font-semibold text-white mb-0.5">Case File Preview</h3>
-                  <p className="text-xs text-slate-400">Generated from 24 symptom entries over 6 weeks</p>
+                  <h3 className="font-display font-semibold text-rose-900 mb-0.5">Case File Preview</h3>
+                  <p className="text-xs text-rose-500">Generated from 24 symptom entries over 6 weeks</p>
                 </div>
               </div>
-              <div className="space-y-2 text-left text-sm text-slate-300 leading-relaxed">
+              <div className="space-y-2 text-left text-sm text-rose-700 leading-relaxed">
                 <p>
                   <TextReveal text="Bloating was logged 12 times across your tracking period, more than any other symptom." delay={1600} staggerMs={25} />
                 </p>
-                <p className="text-xs text-slate-500 border-t border-slate-700 pt-2 mt-2 flex items-center gap-1.5">
+                <p className="text-xs text-rose-400 border-t border-rose-200 pt-2 mt-2 flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 twinkle" />
                   Based on your logged data. Not a diagnosis.
                 </p>
@@ -517,10 +517,10 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
       <section className="py-20 px-4 sm:px-6 relative z-10">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3 text-blur-in">
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-rose-800 mb-3 text-blur-in">
               Everything you need for your next appointment
             </h2>
-            <p className="text-slate-400 text-lg text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
+            <p className="text-rose-500 text-lg text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
               Three tools designed to make your voice heard.
             </p>
           </div>
@@ -530,21 +530,21 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
               icon={<Activity className="w-6 h-6" />}
               title="Track Symptoms"
               description="Quick logging with severity levels. Optional cycle tracking for patterns. Voice input for when typing is hard."
-              gradient="from-teal-400 to-teal-600"
+              gradient="from-rose-400 to-rose-600"
               delay={0}
             />
             <FeatureCard
               icon={<Sparkles className="w-6 h-6" />}
               title="AI Narrative"
               description="Turn raw entries into a clinical summary. Evidence-based, citation-ready, ready to print or share."
-              gradient="from-emerald-500 to-emerald-600"
+              gradient="from-rose-500 to-rose-600"
               delay={120}
             />
             <FeatureCard
               icon={<MessageCircle className="w-6 h-6" />}
               title="Practice Mode"
               description="Rehearse your appointment with personalized questions. Walk in prepared, walk out heard."
-              gradient="from-teal-600 to-teal-700"
+              gradient="from-rose-600 to-rose-700"
               delay={240}
             />
           </div>
@@ -554,51 +554,51 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
       <section className="py-16 px-4 sm:px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
           <div className="relative">
-            <Quote className="w-12 h-12 text-slate-700 mx-auto mb-4 sway" />
-            <blockquote className="font-display text-2xl sm:text-3xl text-slate-200 font-medium leading-relaxed italic mb-4 text-blur-in">
+            <Quote className="w-12 h-12 text-rose-300 mx-auto mb-4 sway" />
+            <blockquote className="font-display text-2xl sm:text-3xl text-rose-700 font-medium leading-relaxed italic mb-4 text-blur-in">
               "I walked in with three pages of data. For the first time, my doctor
               didn't say 'let's wait and see.' She said 'let's look at this together.'"
             </blockquote>
-            <div className="flex items-center justify-center gap-1 text-teal-500 fade-scale" style={{ animationDelay: '300ms', opacity: 0 }}>
+            <div className="flex items-center justify-center gap-1 text-rose-400 fade-scale" style={{ animationDelay: '300ms', opacity: 0 }}>
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-teal-500 text-teal-500 twinkle" style={{ animationDelay: `${i * 100}ms` }} />
+                <Star key={i} className="w-4 h-4 fill-rose-400 text-rose-400 twinkle" style={{ animationDelay: `${i * 100}ms` }} />
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-500 text-slide-left" style={{ animationDelay: '400ms', opacity: 0 }}>— A HerWellness user</p>
+            <p className="mt-3 text-sm text-rose-400 text-slide-left" style={{ animationDelay: '400ms', opacity: 0 }}>— A HerWellness user</p>
           </div>
         </div>
       </section>
 
       <section className="py-16 px-4 sm:px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-slate-800/80 border border-slate-700/50 mb-6 shadow-card backdrop-blur-sm">
-            <Shield className="w-8 h-8 text-teal-400 bloom" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-rose-100/80 border border-rose-200/50 mb-6 shadow-card backdrop-blur-sm">
+            <Shield className="w-8 h-8 text-rose-400 bloom" />
           </div>
-          <h3 className="font-display text-2xl font-semibold text-white mb-3 text-blur-in">Privacy by Design</h3>
-          <p className="text-slate-400 mb-8 max-w-xl mx-auto leading-relaxed text-blur-in" style={{ animationDelay: '100ms' }}>
+          <h3 className="font-display text-2xl font-semibold text-rose-800 mb-3 text-blur-in">Privacy by Design</h3>
+          <p className="text-rose-500 mb-8 max-w-xl mx-auto leading-relaxed text-blur-in" style={{ animationDelay: '100ms' }}>
             Your raw entries never leave this session. Only anonymized statistical
             summaries are sent to the AI model that writes your narrative. Nothing is sold or shared.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/60 rounded-full border border-slate-700/40 backdrop-blur-sm hover-scale">
-              <Lock className="w-4 h-4 text-teal-400" />
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-rose-500">
+            <div className="flex items-center gap-2 px-4 py-2 bg-rose-100/60 rounded-full border border-rose-200/40 backdrop-blur-sm hover-scale">
+              <Lock className="w-4 h-4 text-rose-400" />
               <span>Anonymous auth</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/60 rounded-full border border-slate-700/40 backdrop-blur-sm hover-scale">
-              <Eye className="w-4 h-4 text-teal-400" />
+            <div className="flex items-center gap-2 px-4 py-2 bg-rose-100/60 rounded-full border border-rose-200/40 backdrop-blur-sm hover-scale">
+              <Eye className="w-4 h-4 text-rose-400" />
               <span>Zero personal data</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/60 rounded-full border border-slate-700/40 backdrop-blur-sm hover-scale">
-              <Feather className="w-4 h-4 text-teal-400" />
+            <div className="flex items-center gap-2 px-4 py-2 bg-rose-100/60 rounded-full border border-rose-200/40 backdrop-blur-sm hover-scale">
+              <Feather className="w-4 h-4 text-rose-400" />
               <span>Data stays encrypted</span>
             </div>
           </div>
         </div>
       </section>
 
-      <footer className="py-8 px-4 sm:px-6 border-t border-slate-800 relative z-10">
+      <footer className="py-8 px-4 sm:px-6 border-t border-rose-200 relative z-10">
         <div className="max-w-2xl mx-auto text-center">
-          <p className="text-xs text-slate-600 leading-relaxed">
+          <p className="text-xs text-rose-400 leading-relaxed">
             HerWellness is a symptom documentation tool. It does not diagnose, treat, or replace medical advice.
             Always consult a healthcare provider for medical decisions.
           </p>
@@ -625,7 +625,7 @@ function TabButton({
     <button
       onClick={onClick}
       className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-300 z-10 ${
-        active ? 'text-white' : 'text-slate-400 hover:text-white'
+        active ? 'text-white' : 'text-rose-400 hover:text-rose-700'
       }`}
     >
       {active && (
@@ -636,7 +636,7 @@ function TabButton({
         />
       )}
       {!active && (
-        <div className="absolute inset-0 -z-10 rounded-xl hover:bg-slate-700/40 transition-colors" />
+        <div className="absolute inset-0 -z-10 rounded-xl hover:bg-rose-200/40 transition-colors" />
       )}
       {icon}
       <span className="hidden sm:inline">{children}</span>
@@ -668,14 +668,14 @@ function FeatureCard({
 }) {
   return (
     <div
-      className="group bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 rounded-3xl p-7 hover:border-slate-600/60 transition-all duration-300 hover:translate-y-[-6px] hover:shadow-card rise-fade shimmer-overlay"
+      className="group bg-rose-100/60 backdrop-blur-sm border border-rose-200/50 rounded-3xl p-7 hover:border-rose-300/60 transition-all duration-300 hover:translate-y-[-6px] hover:shadow-card rise-fade shimmer-overlay"
       style={{ animationDelay: `${delay}ms`, opacity: 0 }}
     >
       <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white mb-5 shadow-glow-soft group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300`}>
         {icon}
       </div>
-      <h3 className="font-display font-semibold text-white mb-2 text-lg text-slide-left" style={{ animationDelay: `${delay + 100}ms`, opacity: 0 }}>{title}</h3>
-      <p className="text-sm text-slate-400 leading-relaxed text-slide-left" style={{ animationDelay: `${delay + 200}ms`, opacity: 0 }}>{description}</p>
+      <h3 className="font-display font-semibold text-rose-800 mb-2 text-lg text-slide-left" style={{ animationDelay: `${delay + 100}ms`, opacity: 0 }}>{title}</h3>
+      <p className="text-sm text-rose-500 leading-relaxed text-slide-left" style={{ animationDelay: `${delay + 200}ms`, opacity: 0 }}>{description}</p>
     </div>
   );
 }
