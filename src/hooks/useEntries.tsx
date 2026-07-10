@@ -64,6 +64,7 @@ export function useEntries() {
 
   const deleteEntry = useCallback(
     async (id: string) => {
+      if (!user) throw new Error('User not authenticated');
       try {
         const { error: deleteError } = await supabase
           .from('entries')
@@ -78,7 +79,7 @@ export function useEntries() {
         throw err;
       }
     },
-    []
+    [user]
   );
 
   return {

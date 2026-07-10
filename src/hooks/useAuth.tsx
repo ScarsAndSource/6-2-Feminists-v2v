@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase, getOrCreateUser } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
@@ -13,28 +13,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Track whether getOrCreateUser() has finished — we suppress auth-state
+  // change events until then, because SIGNED_IN fires synchronously from
+  // the cached session before signInAnonymously() even runs.
+  const initialised = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
+    // 1. Establish (or restore) the anonymous session first.
     getOrCreateUser()
       .then(sessionUser => {
-        if (!cancelled) {
-          setUser(sessionUser);
-          setLoading(false);
-        }
+        if (cancelled) return;
+        initialised.current = true;
+        setUser(sessionUser);
+        setLoading(false);
       })
       .catch(err => {
-        console.error('Failed to establish anonymous session:', err);
-        if (!cancelled) {
-          setUser(null);
-          setLoading(false);
-        }
+        console.error('[Auth] Failed to establish anonymous session:', err);
+        if (cancelled) return;
+        initialised.current = true;
+        setUser(null);
+        setLoading(false);
       });
 
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    // 2. Stay in sync with any subsequent auth events (e.g. token refresh).
+    //    We skip the initial INITIAL_SESSION event because getOrCreateUser
+    //    already handles first-boot.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Ignore events that fire before initialisation completes — they're
+      // the cached-session echo from the Supabase client init and would
+      // incorrectly set loading=false before signInAnonymously resolves.
+      if (!initialised.current) return;
+      if (event === 'INITIAL_SESSION') return;
       setUser(session?.user ?? null);
     });
 

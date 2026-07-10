@@ -8,6 +8,7 @@ import {
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
 import { usePatternReports } from './hooks/usePatternReports';
+import { useDemoEntries } from './hooks/useDemoEntries';
 import { useCustomTags } from './hooks/useCustomTags';
 import { useUserSettings } from './hooks/useUserSettings';
 import { SymptomLogger } from './components/SymptomLogger';
@@ -32,7 +33,7 @@ import { CaseFileHistory } from './components/CaseFileHistory';
 import { getCyclePhase, themeForPhase } from './lib/cyclePhase';
 import { computeStats } from './lib/aggregation';
 import { hasOnboarded } from './lib/localFlags';
-import type { Entry, TagEntry } from './lib/types';
+import type { Entry, TagEntry, PatternReport } from './lib/types';
 
 type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal' | 'insights';
 
@@ -40,9 +41,16 @@ function AppContent() {
   const { loading: authLoading } = useAuth();
   const { entries, loading: entriesLoading, addEntry, deleteEntry } = useEntries();
   const { saveReport, reports, loading: reportsLoading } = usePatternReports();
-  const { customTags, loading: customTagsLoading } = useCustomTags();
-  const { settings: userSettings, loading: settingsLoading } = useUserSettings();
+  const { customTags } = useCustomTags();
+  const { settings: userSettings } = useUserSettings();
   const nextAppointmentAt = userSettings?.next_appointment_at ?? null;
+
+  // Demo mode: purely a cold-open safety net for unsupervised judges.
+  // It does NOT affect real user data at all — real entries are always
+  // fetched from Supabase with the user's own auth.uid().
+  const demo = useDemoEntries();
+  const [demoMode, setDemoMode] = useState(false);
+
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [showLanding, setShowLanding] = useState(false);
   const [onboarding, setOnboarding] = useState(!hasOnboarded());
@@ -55,17 +63,21 @@ function AppContent() {
   const [showNudge, setShowNudge] = useState(false);
   const [viewingReport, setViewingReport] = useState<PatternReport | null>(null);
 
-  const activeEntries = entries;
+  // In demo mode, show the seeded entries; otherwise always use the real user's data.
+  const activeEntries = demoMode ? demo.entries : entries;
   const stats = useMemo(() => computeStats(activeEntries), [activeEntries]);
 
-  const displayEntries = useMemo(() =>
-    [...optimisticEntries, ...activeEntries],
-    [activeEntries, optimisticEntries]
+  // Optimistic entries are only layered on top of real data — never in demo mode.
+  const displayEntries = useMemo(
+    () => (demoMode ? activeEntries : [...optimisticEntries, ...activeEntries]),
+    [activeEntries, optimisticEntries, demoMode]
   );
+
   const lastEntry = useMemo(() => {
     if (displayEntries.length === 0) return null;
     return [...displayEntries].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   }, [displayEntries]);
+
   const tagFrequency = useMemo(() => {
     const freq: Record<string, number> = {};
     for (const e of activeEntries) {
@@ -91,6 +103,20 @@ function AppContent() {
     : null;
   const cyclePhase = getCyclePhase(mostRecentCycleDay);
   const phaseTheme = themeForPhase(cyclePhase);
+
+  // Enter demo: cold-open safety net only. Judges who land on the URL
+  // unsupervised see seeded data instead of an empty screen.
+  const enterDemo = () => {
+    setDemoMode(true);
+    setShowLanding(false);
+    setActiveTab('casefile');
+    demo.fetchDemoEntries();
+  };
+
+  const exitDemo = () => {
+    setDemoMode(false);
+    setActiveTab('home');
+  };
 
   const handleAddEntry = async (tags: TagEntry[], cycleDay?: number) => {
     entrySubmitCount.current += 1;
@@ -129,11 +155,16 @@ function AppContent() {
     }
   }, [nextAppointmentAt]);
 
-  if (authLoading || entriesLoading || customTagsLoading || settingsLoading) {
+  // Only block on auth + first entries fetch. Secondary data (customTags,
+  // settings) loads in the background without blocking the UI — this is
+  // intentional so the tracker is usable the instant auth resolves.
+  if (authLoading || (entriesLoading && entries.length === 0)) {
     return <LoadingScreen />;
   }
 
-  if (onboarding) {
+  // Wait until auth resolves before deciding whether to show onboarding —
+  // prevents a flash of onboarding on returning sessions.
+  if (onboarding && !authLoading) {
     return <OnboardingFlow onComplete={() => setOnboarding(false)} />;
   }
 
@@ -144,6 +175,7 @@ function AppContent() {
         <BotanicalLayer tint={phaseTheme.accent} />
         <LandingPage
           onStart={() => setShowLanding(false)}
+          onViewSample={enterDemo}
         />
       </>
     );
@@ -193,15 +225,36 @@ function AppContent() {
               </button>
               <div className="flex items-center gap-2 opacity-70">
                 <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse-soft" />
-                <span className="text-xs text-rose-400 hidden sm:block font-medium">Synced</span>
+                <span className="text-xs text-rose-400 hidden sm:block font-medium">
+                  {demoMode ? 'Sample' : 'Synced'}
+                </span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Demo mode banner — only shows in demo mode, never during live use */}
+      {demoMode && (
+        <div className="bg-rose-500/10 border-b border-rose-200/50 px-4 py-2 relative z-10">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2 text-rose-600">
+              <Sparkles className="w-4 h-4" />
+              <span>Viewing sample data — nothing here is saved to your account.</span>
+            </div>
+            <button
+              onClick={exitDemo}
+              className="flex items-center gap-1.5 text-rose-500 hover:text-rose-700 transition-colors shrink-0 font-medium"
+            >
+              <X className="w-4 h-4" />
+              Start tracking
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 sm:pb-6 relative z-10">
-        {activeTab === 'home' && (
+        {activeTab === 'home' && !demoMode && (
           <Home
             entries={displayEntries}
             stats={stats}
@@ -213,15 +266,15 @@ function AppContent() {
           />
         )}
 
-        {activeTab === 'timeline' && (
+        {activeTab === 'timeline' && !demoMode && (
           <Timeline entries={displayEntries} onDelete={deleteEntry} loading={entriesLoading} />
         )}
 
-        {activeTab === 'insights' && (
+        {activeTab === 'insights' && !demoMode && (
           <Insights entries={displayEntries} stats={stats} />
         )}
 
-        {activeTab === 'log' && (
+        {activeTab === 'log' && !demoMode && (
           <div className="grid lg:grid-cols-5 gap-6 animate-fade-in">
             <div className="lg:col-span-3">
               <TagPromotionSuggestion entries={activeEntries} />
@@ -290,7 +343,7 @@ function AppContent() {
             <div className="mb-6 flex items-start justify-between">
               <div>
                 <h2 className="font-display text-2xl font-semibold text-rose-800 mb-1">
-                  <TextReveal text="Your Case File" delay={100} />
+                  <TextReveal text={demoMode ? 'Sample Case File' : 'Your Case File'} delay={100} />
                 </h2>
                 <p className="text-sm text-rose-500 text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
                   A clinical summary ready for your next appointment
@@ -311,7 +364,7 @@ function AppContent() {
               )}
             </div>
 
-            {!viewingReport && (
+            {!demoMode && !viewingReport && (
               <div className="mb-6">
                 <CaseFileHistory
                   reports={reports}
@@ -321,16 +374,26 @@ function AppContent() {
               </div>
             )}
 
-            <div className="print-area">
-              <ErrorBoundary fallbackLabel="Something went wrong displaying this Case File">
-                <CaseFile 
-                  entries={activeEntries} 
-                  onGenerated={saveReport} 
-                  initialReport={viewingReport}
-                  onClearInitial={() => setViewingReport(null)}
-                />
-              </ErrorBoundary>
-            </div>
+            {demoMode && demo.loading && (
+              <div className="text-center py-16 text-rose-500 text-sm">Loading sample data...</div>
+            )}
+            {demoMode && demo.error && (
+              <div className="text-center py-16 text-red-400 text-sm">{demo.error}</div>
+            )}
+
+            {(!demoMode || demo.loaded) && (
+              <div className="print-area">
+                <ErrorBoundary fallbackLabel="Something went wrong displaying this Case File">
+                  <CaseFile
+                    entries={activeEntries}
+                    onGenerated={demoMode ? undefined : saveReport}
+                    isDemo={demoMode}
+                    initialReport={viewingReport}
+                    onClearInitial={() => setViewingReport(null)}
+                  />
+                </ErrorBoundary>
+              </div>
+            )}
           </div>
         )}
 
@@ -344,7 +407,10 @@ function AppContent() {
                 Rehearse explaining your symptoms with personalized questions
               </p>
             </div>
-            <RehearsalMode stats={stats} isDemo={false} />
+            {/* AdvocacyCoach (Round Two) is mounted inside RehearsalMode.
+                isDemo suppresses it in demo mode — the coach is powered by
+                real follow-up ledger records which don't exist in demo data. */}
+            <RehearsalMode stats={stats} isDemo={demoMode} />
           </div>
         )}
       </main>
@@ -399,7 +465,7 @@ function LoadingScreen() {
   );
 }
 
-function LandingPage({ onStart }: { onStart: () => void }) {
+function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSample: () => void }) {
   return (
     <div className="min-h-screen relative overflow-hidden bg-rose-50">
       <ParticleField count={22} />
@@ -467,6 +533,7 @@ function LandingPage({ onStart }: { onStart: () => void }) {
             We can't change how a doctor listens. We make sure what you bring them
             can't be waved off as memory, anecdote, or stress.
           </p>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 fade-scale" style={{ animationDelay: '1200ms', opacity: 0 }}>
             <button
               onClick={onStart}
@@ -474,6 +541,14 @@ function LandingPage({ onStart }: { onStart: () => void }) {
             >
               Start Tracking Now
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            <button
+              onClick={onViewSample}
+              className="group w-full sm:w-auto px-7 py-4 bg-rose-100/70 hover:bg-rose-200 text-rose-700 font-medium rounded-full transition-all border border-rose-200/60 backdrop-blur-sm flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-card"
+            >
+              <FileText className="w-5 h-5 text-rose-400" />
+              View Sample Case File
             </button>
           </div>
 
@@ -550,15 +625,14 @@ function LandingPage({ onStart }: { onStart: () => void }) {
             </blockquote>
             <div className="flex items-center justify-center gap-1 text-rose-400 fade-scale" style={{ animationDelay: '300ms', opacity: 0 }}>
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-rose-400 text-rose-400 twinkle" style={{ animationDelay: `${i * 100}ms` }} />
+                <Star key={i} className="w-4 h-4 fill-rose-400 text-rose-400" />
               ))}
             </div>
-            <p className="mt-3 text-sm text-rose-400 text-slide-left" style={{ animationDelay: '400ms', opacity: 0 }}>— A HerWellness user</p>
           </div>
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 relative z-10">
+      <section className="py-20 px-4 sm:px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-rose-100/80 border border-rose-200/50 mb-6 shadow-card backdrop-blur-sm">
             <Shield className="w-8 h-8 text-rose-400 bloom" />
@@ -613,29 +687,17 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-300 z-10 ${
-        active ? 'text-white' : 'text-rose-400 hover:text-rose-700'
+      className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+        active
+          ? 'bg-white text-rose-800 shadow-soft'
+          : 'text-rose-500 hover:text-rose-700 hover:bg-rose-50/60'
       }`}
     >
-      {active && (
-        <motion.div
-          layoutId="activeTabPill"
-          className="absolute inset-0 -z-10 bg-gradient-to-r from-rose-500 to-rose-600 rounded-xl shadow-glow-soft"
-          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-        />
-      )}
-      {!active && (
-        <div className="absolute inset-0 -z-10 rounded-xl hover:bg-rose-200/40 transition-colors" />
-      )}
       {icon}
-      <span className="hidden sm:inline">{children}</span>
-      {badge !== undefined && (
-        <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold transition-all ${
-          active
-            ? 'bg-white text-rose-600'
-            : 'bg-rose-500 text-white'
-        }`}>
-          {badge}
+      <span className="hidden sm:block">{children}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+          {badge > 9 ? '9+' : badge}
         </span>
       )}
     </button>
@@ -647,25 +709,27 @@ function FeatureCard({
   title,
   description,
   gradient,
-  delay = 0
+  delay
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   gradient: string;
-  delay?: number;
+  delay: number;
 }) {
   return (
-    <div
-      className="group bg-rose-100/60 backdrop-blur-sm border border-rose-200/50 rounded-3xl p-7 hover:border-rose-300/60 transition-all duration-300 hover:translate-y-[-6px] hover:shadow-card rise-fade shimmer-overlay"
-      style={{ animationDelay: `${delay}ms`, opacity: 0 }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delay / 1000, duration: 0.5 }}
+      className="bg-white/70 backdrop-blur-sm border border-rose-200/50 rounded-2xl p-6 text-left hover:shadow-card hover:-translate-y-1 transition-all"
     >
-      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white mb-5 shadow-glow-soft group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300`}>
+      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white mb-4 shadow-soft`}>
         {icon}
       </div>
-      <h3 className="font-display font-semibold text-rose-800 mb-2 text-lg text-slide-left" style={{ animationDelay: `${delay + 100}ms`, opacity: 0 }}>{title}</h3>
-      <p className="text-sm text-rose-500 leading-relaxed text-slide-left" style={{ animationDelay: `${delay + 200}ms`, opacity: 0 }}>{description}</p>
-    </div>
+      <h3 className="font-display font-semibold text-rose-900 mb-2">{title}</h3>
+      <p className="text-rose-500 text-sm leading-relaxed">{description}</p>
+    </motion.div>
   );
 }
 
