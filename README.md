@@ -4,7 +4,7 @@
 
 ### *Your symptoms, compiled. Not dismissed.*
 
-**A symptom-documentation companion that turns scattered self-reports into a clinical, doctor-ready Case File — built for the HerWellness track at Vibe2Vision 2026.**
+**A symptom-documentation companion that turns scattered self-reports into a clinical, doctor-ready Case File, built for the HerWellness track at Vibe2Vision 2026.**
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -21,15 +21,10 @@
 
 <br/>
 
-> **In-app the product wears the name *HerWellness* — the persona built for this track.** Across planning docs and this repo it's referred to by its working title, **Undismissed**. Same app, two names, one thesis.
-
-<br/>
-
 ## 📋 Table of Contents
 
 - [The Problem](#-the-problem)
 - [What It Does](#-what-it-does)
-- [How It Works](#-how-it-works)
 - [The Core Principle](#-the-core-principle)
 - [Features at a Glance](#-features-at-a-glance)
   - [📝 Symptom Logging](#-symptom-logging)
@@ -44,15 +39,13 @@
 - [Tech Stack](#-tech-stack)
 - [Design Language](#-design-language)
 - [Project Structure](#-project-structure)
-- [Data Model](#-data-model)
 - [Safety & Guardrails](#-safety--guardrails)
 - [Getting Started](#-getting-started)
 - [Environment Variables](#-environment-variables)
 - [Available Scripts](#-available-scripts)
-- [Current Status & Known Limitations](#-current-status--known-limitations)
 - [Roadmap](#-roadmap)
-- [FAQ](#-faq)
 - [Disclaimer](#-disclaimer)
+- [License](#-license)
 
 <br/>
 
@@ -83,7 +76,7 @@ One tap turns raw entries into a clinical-register narrative: frequency, average
 <td width="25%" valign="top">
 
 ### 🤖 AI Soother
-A warm, pressure-free check-in space that never diagnoses. Crisis detection (`kill myself`, `want to die` etc.) surfaces India-specific helplines (iCall, KIRAN). Keyword-matched empathetic fallback replies cover 12+ emotional states. Optionally backed by an AI provider for richer conversation, with a hard 8-second abort timeout. Sessions persist to `sessionStorage` — close and reopen without losing the thread.
+A warm, pressure-free check-in space that never diagnoses. Crisis detection (`kill myself`, `want to die` etc.) surfaces India-specific helplines (iCall, KIRAN). Keyword-matched empathetic fallback replies cover 12+ emotional states. Optionally backed by an AI provider (via a self-hosted `/api/` proxy) for richer conversation, with a hard 8-second abort timeout. Sessions persist to `sessionStorage` — close and reopen without losing the thread.
 
 </td>
 <td width="25%" valign="top">
@@ -94,42 +87,6 @@ A warm, pressure-free check-in space that never diagnoses. Crisis detection (`ki
 </td>
 </tr>
 </table>
-
-<br/>
-
-## 🔧 How It Works
-
-```mermaid
-flowchart TD
-    A["📝 Symptom Logger<br/>(categorized chip grid, voice input, custom tags)"]
-    A -->|insert| B[("localStorage · entries<br/>persisted as JSON")]
-    
-    B --> C["📊 Aggregation Engine<br/>computeStats()"]
-    C --> D{"ComputedStats<br/>frequency · severity · co-occurrence ·<br/>cycle correlation · coverage gaps"}
-    
-    D --> E["📄 Case File Narration Pipeline"]
-    E --> F["1️⃣ Groq (via /api/generate-narrative)<br/>8s timeout, abortable"]
-    F -- fails / flagged --> G["2️⃣ Gemini (via /api)<br/>8s timeout, abortable"]
-    G -- fails / flagged --> H["3️⃣ Deterministic Template<br/>zero LLM calls, always succeeds"]
-    F -- clean output --> I["📄 Case File Render"]
-    G -- clean output --> I
-    H --> I
-    I --> J["🖨️ Print / PDF Export"]
-    
-    D -.-> K["🎯 Rehearsal Mode<br/>template-driven interview questions"]
-    B -.-> L["🔁 Tag Promotion<br/>Levenshtein clustering of free-text notes"]
-    D -.-> M["📊 Evidence Meter<br/>6-factor evidence strength score"]
-    D -.-> N["🤖 AI Soother<br/>crisis detection + keyword fallback + optional AI"]
-    B -.-> O["🗓️ Cycle Calendar<br/>period start/end, prediction, phase-aware UI"]
-    B -.-> P["🔥 Timeline Heatmap<br/>16-week severity visualization"]
-
-    style H fill:#f9b3cf,stroke:#d4457f,color:#4a0d2e
-    style D fill:#feeef4,stroke:#d4457f,color:#4a0d2e
-    style I fill:#fcd6e3,stroke:#d4457f,color:#4a0d2e
-    style N fill:#e6d0de,stroke:#9c6b8e,color:#4a0d2e
-```
-
-Nothing renders straight from raw entries. Everything the patient sees — the narrative, the evidence score, the practice questions, the advocacy note — is derived from the same `ComputedStats` object, so no two surfaces can ever contradict each other.
 
 <br/>
 
@@ -172,7 +129,7 @@ The central landing after onboarding. Shows:
 - **Stats Strip** — entries this week, current streak, estimated cycle day
 - **Evidence Meter** — radial gauge with 6-factor breakdown (volume, consistency, diversity, severity detail, cycle correlation, time span)
 - **Insight Teaser** — top 2 computed patterns at a glance
-- **AI Assistant** — optional Groq-powered pattern analysis (when API key is configured)
+- **AI Assistant** — optional Groq-powered pattern analysis; requires a self-hosted `/api/` proxy to actually generate output (a configured key alone only affects the Settings-panel status display, not live calls)
 - **Recent entries** — last 4 logs with inline delete
 - **Case File CTA** — ready prompt when ≥3 entries logged
 
@@ -229,7 +186,7 @@ The central landing after onboarding. Shows:
 - Most-logged symptom card
 - Co-occurrence pair card
 - Severity trend card (rising / falling / steady)
-- **AI Health Advisor** section: optional Gemini API key for forecasting, remedies, and clinical flags
+- **AI Health Advisor** section: optional Gemini-backed forecasting, remedies, and clinical flags — like the Home Dashboard's AI Assistant, this needs a self-hosted `/api/` proxy to run live; without one, it degrades to the deterministic insights above
 - Animated loading states with rotating status messages
 - Markdown rendering for AI-generated reports
 
@@ -319,7 +276,7 @@ The interface is built to read as a **clinical record, not an investigation cork
 ```
 undismissed/
 ├── scripts/
-│   └── seed-demo.mjs            # seeds demo data into Supabase (legacy)
+│   └── seed-demo.mjs            # seeds demo data into Supabase (legacy, pre-localStorage)
 ├── public/
 │   └── og-image.svg             # Open Graph preview image
 ├── src/
@@ -387,8 +344,8 @@ undismissed/
 │   │   ├── cyclePhase.ts         # cycle phase enum, detection, theme colors
 │   │   ├── evidenceScore.ts      # 6-factor evidence strength computation
 │   │   ├── fuzzyMatch.ts         # Levenshtein distance + tag promotion clustering
-│   │   ├── gemini.ts             # Gemini API integration (disabled client-side)
-│   │   ├── groq.ts               # Groq API integration (disabled client-side)
+│   │   ├── gemini.ts             # Gemini API integration (direct calls disabled client-side)
+│   │   ├── groq.ts               # Groq API integration (direct calls disabled client-side)
 │   │   ├── insights.ts           # doctorFlags() + fallbackSuggestions()
 │   │   ├── localFlags.ts         # localStorage flag utilities
 │   │   ├── narration.ts          # generateNarrative() Groq → Gemini → template
@@ -416,72 +373,6 @@ undismissed/
 
 <br/>
 
-## 🗃 Data Model
-
-```mermaid
-erDiagram
-    ENTRIES {
-        string id UUID
-        string user_id "local"
-        TagEntry[] tags "[{tag, severity, note?}]"
-        int cycle_day "nullable"
-        timestamptz created_at
-    }
-    PATTERN_REPORTS {
-        string id UUID
-        string user_id "local"
-        ComputedStats computed_stats
-        string narrative
-        string provider "groq | gemini | template"
-        timestamptz generated_at
-    }
-    VISIT_FOLLOWUPS {
-        string id UUID
-        string user_id "local"
-        string pattern_report_id "nullable"
-        boolean mentioned_before
-        FollowupOutcome outcome "dismissed | tested | treated | no_follow_up"
-        string outcome_note
-        string visit_date "nullable"
-        string related_tag "nullable"
-        timestamptz created_at
-    }
-    CUSTOM_TAGS {
-        string id UUID
-        string user_id "local"
-        string label "e.g. Jaw Tightness"
-        string source_note "original free-text"
-        timestamptz created_at
-    }
-    PERIOD_LOGS {
-        string id UUID
-        string start_date
-        string end_date "nullable"
-        timestamptz created_at
-    }
-    ENTRIES ||--o{ PATTERN_REPORTS : "aggregated into"
-    PATTERN_REPORTS ||--o{ VISIT_FOLLOWUPS : "linked to"
-```
-
-**`ComputedStats`** — the single interface both the aggregation engine and the narration prompt import, so nobody improvises a shape mid-pipeline:
-
-```ts
-interface ComputedStats {
-  entry_count: number;
-  date_range: { start: string; end: string };
-  tag_frequency: { tag: string; count: number }[];           // 'other' excluded from ranking
-  severity_by_tag: { tag: string; avg_severity: number; n: number; low_confidence?: boolean }[];
-  co_occurrence: { tag_a: string; tag_b: string; lag_days_avg: number; n: number; low_confidence?: boolean }[];
-  cycle_day_correlation?: { tag: string; avg_cycle_day: number; n: number }[];
-  coverage_gap_flag?: boolean;   // true if any gap between entries exceeds 14 days
-  other_notes?: string[];        // free-text 'other' entries — data only, never instructions
-}
-```
-
-Any stat backed by fewer than 3 data points is marked `low_confidence` and gets hedged (or omitted) rather than stated as fact — the app would rather say less than say something confidently wrong.
-
-<br/>
-
 ## 🛡 Safety & Guardrails
 
 | Concern | Mitigation |
@@ -489,7 +380,7 @@ Any stat backed by fewer than 3 data points is marked `low_confidence` and gets 
 | **Hallucinated patterns** | Narration only ever describes fields already present in `ComputedStats` — the model has no access to raw entries |
 | **Thin-sample overconfidence** | `n < 3` → `low_confidence: true`, enforced in aggregation code, not left to the model's judgment |
 | **Diagnostic language** | An 11-rule system prompt bans diagnostic/prescriptive phrasing; a keyword net double-checks every output before render |
-| **Prompt injection via free text** | `other`-tag notes and voice-transcript fallbacks are passed as a JSON data field, never interpolated into instruction text; the model is told explicitly to treat all of it as patient-reported data, regardless of what it appears to say |
+| **Prompt injection via free text** | `other`-tag notes and voice-transcript fallbacks are passed as a JSON data field, never interpolated into instruction text; the model is told explicitly to treat all input as reported data, regardless of what it appears to say |
 | **`other`-bucket distortion** | The catch-all `other` tag is excluded from top-pattern ranking so ten different free-text symptoms never masquerade as "your most common symptom" |
 | **Provider outage** | Two independent LLM providers, each on an abortable 8-second timeout, backed by a template narrator that needs no network call at all |
 | **Malformed render data** | Loading state cycles through multiple status lines + a petal blossom spinner instead of freezing; generation is wrapped so a failure anywhere in the chain still resolves to *something* on screen |
@@ -503,7 +394,7 @@ Any stat backed by fewer than 3 data points is marked `low_confidence` and gets 
 
 **Prerequisites:** Node 18+, npm/pnpm.
 
-This build runs entirely on `localStorage` — no database, no server, no Supabase project needed. AI features (narration, soother, suggestions) require a backend proxy at `/api/` routes; without one, all features degrade gracefully to their deterministic fallbacks.
+This build runs entirely on `localStorage` — no database, no server, no Supabase project needed. The AI-augmented features (narration, soother, AI Assistant, AI Health Advisor, Advocacy Chat) are architected to call a backend proxy at `/api/` routes, but **no such proxy ships with this repo** — you'll need to build and point one at your Groq/Gemini keys yourself. Without it, every AI-augmented feature degrades gracefully to its deterministic fallback, and the app is fully usable end-to-end on that path alone.
 
 ```bash
 # 1. Clone and enter the project
@@ -513,7 +404,7 @@ cd undismissed
 # 2. Install dependencies
 npm install
 
-# 3. (Optional) Configure API keys
+# 3. (Optional) Configure API keys — only meaningful once you've stood up a /api/ proxy
 cp .env.example .env.local   # see table below
 
 # 4. Run the dev server
@@ -526,15 +417,15 @@ The app boots into a 3-step onboarding flow (privacy notice → optional cycle l
 
 ## 🔑 Environment Variables
 
-> These are optional. The app runs fully on deterministic fallbacks without any keys configured.
+> These are optional. The app runs fully on deterministic fallbacks without any keys configured, and configuring them alone does **not** enable live AI calls — see the security note below.
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `VITE_GROQ_API_KEY` | Optional | Enables the primary narration provider (Groq `mixtral-8x7b-32768`) — currently disabled client-side for security; use a `/api/` proxy instead |
-| `VITE_GEMINI_API_KEY` | Optional | Enables the Gemini fallback narration provider — currently disabled client-side for security; use a `/api/` proxy instead |
+| `VITE_GROQ_API_KEY` | Optional | Enables the primary narration provider (Groq) — direct browser calls are disabled for security; must be routed through your own `/api/` proxy |
+| `VITE_GEMINI_API_KEY` | Optional | Enables the Gemini fallback narration provider — direct browser calls are disabled for security; must be routed through your own `/api/` proxy |
 | `VITE_FORCE_TEMPLATE` | Optional | Set to `true` to force every generation through the deterministic template — useful for rehearsing the guaranteed-success path without burning API quota |
 
-> **Security note:** The `groq.ts` and `gemini.ts` lib files both have their direct-call functions deliberately throwing errors (`throw new Error('Direct browser AI calls are disabled.')`). All AI requests are expected to go through a backend proxy at `/api/` routes. The Settings panel shows API key status but reads from `VITE_GROQ_API_KEY` for display only.
+> **Security note:** `groq.ts` and `gemini.ts` both deliberately throw on their direct-call functions (`throw new Error('Direct browser AI calls are disabled.')`). All AI requests are expected to go through a backend proxy at `/api/` routes that you provide. The Settings panel shows API key status but reads `VITE_GROQ_API_KEY` for **display purposes only** — it does not indicate that live Groq calls will succeed.
 
 <br/>
 
@@ -550,21 +441,6 @@ The app boots into a 3-step onboarding flow (privacy notice → optional cycle l
 
 <br/>
 
-## ⚠️ Current Status & Known Limitations
-
-This build is a **fully local-first, zero-infrastructure prototype** — every hook writes to `localStorage`, the app needs no database, and all AI features are optional. The following are honest pre-production notes:
-
-- [ ] **Move LLM calls server-side.** The app architecture expects `/api/` proxies for narration, soother, and suggestions. No proxy currently ships with this repo — you'll need to wire one (or set `VITE_FORCE_TEMPLATE=true` to run entirely deterministically).
-- [ ] **Sync across devices.** LocalStorage is single-device by nature. A real deployment would back entries to a server (the old Supabase schema is in the commit history).
-- [ ] **Re-verify model IDs before relying on them long-term.** LLM model names get deprecated on their own schedule — reconfirm both providers' current model list before a real event.
-- [ ] **Clinician-reviewed symptom taxonomy.** The current 15-tag list is team-curated, not medically validated.
-- [ ] **Add a compliance line for health-data handling.** Anonymous-by-design and localStorage-only is a reasonable MVP posture; a real look at India's DPDP Act (and GDPR, for any international users) is an honest pre-launch item.
-- [ ] **Offline-capable logging.** The app works offline because it's localStorage-based, but lacks a PWA/service-worker manifest for installability and explicit offline messaging.
-
-None of this blocks a demo. All of it matters before real patient data touches a production schema.
-
-<br/>
-
 ## 🗺 Roadmap
 
 - Backend proxy for `/api/` routes (narration, soother, suggestions, advocacy)
@@ -576,62 +452,16 @@ None of this blocks a demo. All of it matters before real patient data touches a
 
 <br/>
 
-## ❓ FAQ
-
-<details>
-<summary><strong>What happens if I switch devices — do I lose my data?</strong></summary>
-<br/>
-Yes — anonymous, single-device by design (localStorage), which keeps the barrier to logging at zero. Account linking for cross-device sync is the next thing on the roadmap.
-</details>
-
-<details>
-<summary><strong>Couldn't the AI hallucinate a pattern that isn't real?</strong></summary>
-<br/>
-It only narrates code-computed stats, never freehands from raw entries. A minimum-sample-size rule enforced in code, a keyword-check safety net, and a fully deterministic non-AI fallback all exist specifically to catch this.
-</details>
-
-<details>
-<summary><strong>What does the AI Soother do with my messages?</strong></summary>
-<br/>
-Nothing. Conversations live in `sessionStorage` and die when you close the tab. If the optional AI backend is configured, the last 12 messages are sent to generate a reply — no messages are stored server-side.
-</details>
-
-<details>
-<summary><strong>Is the symptom tag list medically validated?</strong></summary>
-<br/>
-No — it's team-curated based on common symptom-tracking practice. Clinician review is an explicit next step.
-</details>
-
-<details>
-<summary><strong>What stops someone from typing something malicious into the free-text field?</strong></summary>
-<br/>
-Free text is only ever passed to the model as a clearly delimited data field inside the stats object, never as instruction text, and the system prompt explicitly tells the model to treat all input as reported data — never a command — regardless of content.
-</details>
-
-<details>
-<summary><strong>What if a doctor doesn't trust an AI-written summary?</strong></summary>
-<br/>
-Every number in it traces directly to something the patient logged. It's a compiled record, not an AI opinion — and if every provider fails, the template narrator produces the same kind of summary with zero AI involvement at all.
-</details>
-
-<details>
-<summary><strong>Does the app need an internet connection?</strong></summary>
-<br/>
-Core functionality (logging, Case File generation via template, Rehearsal Mode, Evidence Meter, Cycle Calendar) works entirely offline. Only AI features (narration via Groq/Gemini, AI Soother, AI Assistant) need a network connection.
-</details>
-
-<details>
-<summary><strong>How is the Advocacy Coach different from Rehearsal Mode?</strong></summary>
-<br/>
-Rehearsal Mode simulates the *appointment itself* — it generates practice questions from your stats and lets you voice-answer them. Advocacy Coach activates *after* a dismissal has been logged and helps you prepare a specific pushback response with a data-backed printable note.
-</details>
-
-<br/>
-
 ## 🩺 Disclaimer
 
 > [!WARNING]
 > **Undismissed / HerWellness is a symptom documentation tool. It does not diagnose, treat, or replace medical advice or professional judgment.** Every generated summary is computed exclusively from what the user logged and is explicitly non-diagnostic by design. **The AI Soother is an emotional check-in space, not therapy, not a crisis hotline, not a substitute for professional mental health care.** If you're in crisis, please reach out to a qualified professional or a local helpline (in India: iCall at 9152987821 or KIRAN at 1800-599-0019). Always consult a qualified healthcare provider for medical decisions. This is a hackathon prototype, not a certified medical device.
+
+<br/>
+
+## 📄 License
+
+No license file is currently included in this repository. Until one is added, treat this project as all-rights-reserved to its author.
 
 <br/>
 
