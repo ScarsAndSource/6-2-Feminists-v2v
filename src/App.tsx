@@ -13,6 +13,7 @@ import { useCustomTags } from './hooks/useCustomTags';
 import { useUserSettings } from './hooks/useUserSettings';
 import { SymptomLogger } from './components/SymptomLogger';
 import { Home } from './components/Home';
+import { OnboardingFlow } from './components/OnboardingFlow';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CaseFile } from './components/CaseFile';
 import { EntryHistory } from './components/EntryHistory';
@@ -26,7 +27,7 @@ import { CycleConstellation } from './components/CycleConstellation';
 import { TextReveal } from './components/TextReveal';
 import { getCyclePhase, themeForPhase } from './lib/cyclePhase';
 import { computeStats } from './lib/aggregation';
-import { hasOnboarded, setOnboarded } from './lib/localFlags';
+import { hasOnboarded } from './lib/localFlags';
 import type { Entry, TagEntry } from './lib/types';
 
 type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal';
@@ -141,8 +142,7 @@ function AppContent() {
   }
 
   if (onboarding && !authLoading) {
-    setOnboarded();
-    setTimeout(() => setOnboarding(false), 0);
+    return <OnboardingFlow onComplete={() => setOnboarding(false)} />;
   }
 
   if (onboarding) {
