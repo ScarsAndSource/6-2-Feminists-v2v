@@ -12,6 +12,13 @@ export interface Entry {
   created_at: string;
 }
 
+export interface PeriodLog {
+  id: string;
+  start_date: string;
+  end_date: string | null;
+  created_at: string;
+}
+
 export interface ComputedStats {
   entry_count: number;
   date_range: { start: string; end: string };

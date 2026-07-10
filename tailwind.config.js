@@ -49,6 +49,7 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['"Instrument Serif"', 'Georgia', 'serif'],
         script: ['"Reenie Beanie"', 'cursive'],
+        hand: ['"Reenie Beanie"', 'cursive'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
@@ -67,6 +68,8 @@ export default {
         'rise-fade': 'riseFade 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         'bounce-gentle': 'bounceGentle 2s ease-in-out infinite',
         'fade-scale': 'fadeScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        'float-delayed': 'gentleFloat 9s ease-in-out infinite 2s',
+        'float-slow': 'gentleFloat 12s ease-in-out infinite 1s',
       },
       keyframes: {
         fadeIn: {
@@ -136,6 +139,10 @@ export default {
         fadeScale: {
           '0%': { opacity: '0', transform: 'scale(0.9)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        gentleFloat: {
+          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-15px) rotate(2deg)' },
         },
       },
       boxShadow: {
