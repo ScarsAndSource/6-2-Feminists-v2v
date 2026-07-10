@@ -1,19 +1,89 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { storageGet, storageSet, onStorageChange } from '../lib/storage';
+import { todayKey, daysBetweenKeys, addDaysToKey } from '../lib/dateUtils';
 import type { PeriodLog } from '../lib/types';
-import { onStorageChange, storageGet, storageSet } from '../lib/storage';
+
 const KEY = 'period_logs';
-const dayMs = 86_400_000;
-const asLocalDate = (value: string) => new Date(`${value}T12:00:00`);
-const todayKey = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
-const daysBetween = (start: string, end: string) => Math.round((asLocalDate(end).getTime() - asLocalDate(start).getTime()) / dayMs);
-const sort = (logs: PeriodLog[]) => [...logs].sort((a, b) => b.start_date.localeCompare(a.start_date));
+
+const MAX_PLAUSIBLE_CYCLE_LENGTH = 45;
+const MIN_PLAUSIBLE_CYCLE_LENGTH = 15;
+
+function sortDesc(logs: PeriodLog[]): PeriodLog[] {
+  return [...logs].sort((a, b) => b.start_date.localeCompare(a.start_date));
+}
+
 export function usePeriodLog() {
-  const [logs, setLogs] = useState<PeriodLog[]>(() => sort(storageGet<PeriodLog[]>(KEY, [])));
-  useEffect(() => onStorageChange(KEY, () => setLogs(sort(storageGet<PeriodLog[]>(KEY, [])))), []);
-  const save = useCallback((next: PeriodLog[]) => { storageSet(KEY, next); setLogs(sort(next)); }, []);
-  const startPeriod = useCallback((date = todayKey()) => { if (logs.some(log => log.end_date === null)) return; save([{ id: crypto.randomUUID(), start_date: date, end_date: null, created_at: new Date().toISOString() }, ...storageGet<PeriodLog[]>(KEY, [])]); }, [logs, save]);
-  const endPeriod = useCallback((id: string, date = todayKey()) => save(storageGet<PeriodLog[]>(KEY, []).map(log => log.id === id ? { ...log, end_date: date < log.start_date ? log.start_date : date } : log)), [save]);
-  const currentCycleDay = useCallback((date = todayKey()) => logs[0] ? Math.max(1, daysBetween(logs[0].start_date, date) + 1) : null, [logs]);
-  const prediction = useMemo(() => { const completed = logs.filter(log => log.end_date); if (completed.length < 2) return null; const ordered = [...completed].sort((a, b) => a.start_date.localeCompare(b.start_date)); const gaps = ordered.slice(1).map((log, index) => daysBetween(ordered[index].start_date, log.start_date)).filter(gap => gap >= 15 && gap <= 60); if (!gaps.length) return null; const average = Math.round(gaps.slice(-6).reduce((sum, gap) => sum + gap, 0) / Math.min(gaps.length, 6)); const next = asLocalDate(logs[0].start_date); next.setDate(next.getDate() + average); return { date: `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`, avgCycleLength: average }; }, [logs]);
-  return { logs, startPeriod, endPeriod, currentCycleDay, predictedNextPeriod: prediction, isOnPeriod: logs.some(log => log.end_date === null) };
+  const [logs, setLogs] = useState<PeriodLog[]>(() => sortDesc(storageGet<PeriodLog[]>(KEY, [])));
+
+  useEffect(() => onStorageChange(KEY, () => setLogs(sortDesc(storageGet<PeriodLog[]>(KEY, [])))), []);
+
+  const persist = useCallback((next: PeriodLog[]) => {
+    const sorted = sortDesc(next);
+    storageSet(KEY, sorted);
+    setLogs(sorted);
+  }, []);
+
+  const startPeriod = useCallback((date: string = todayKey()) => {
+    const current = storageGet<PeriodLog[]>(KEY, []);
+    const alreadyOpen = current.find(l => l.end_date === null);
+    if (alreadyOpen) {
+      persist(current.map(l => (l.id === alreadyOpen.id ? { ...l, start_date: date } : l)));
+      return;
+    }
+    const log: PeriodLog = { id: crypto.randomUUID(), start_date: date, end_date: null, created_at: new Date().toISOString() };
+    persist([log, ...current]);
+  }, [persist]);
+
+  const endPeriod = useCallback((id: string, date: string = todayKey()) => {
+    const current = storageGet<PeriodLog[]>(KEY, []);
+    persist(current.map(l => (l.id === id ? { ...l, end_date: date < l.start_date ? l.start_date : date } : l)));
+  }, [persist]);
+
+  const editPeriod = useCallback((id: string, updates: Partial<Pick<PeriodLog, 'start_date' | 'end_date'>>) => {
+    const current = storageGet<PeriodLog[]>(KEY, []);
+    persist(current.map(l => (l.id === id ? { ...l, ...updates } : l)));
+  }, [persist]);
+
+  const deletePeriod = useCallback((id: string) => {
+    const current = storageGet<PeriodLog[]>(KEY, []);
+    persist(current.filter(l => l.id !== id));
+  }, [persist]);
+
+  const currentCycleDay = useCallback((): number | null => {
+    if (logs.length === 0) return null;
+    return daysBetweenKeys(logs[0].start_date, todayKey()) + 1;
+  }, [logs]);
+
+  const averagePeriodLength = useCallback((): number | null => {
+    const completed = logs.filter(l => l.end_date).slice(0, 6);
+    if (completed.length === 0) return null;
+    const lengths = completed.map(l => daysBetweenKeys(l.start_date, l.end_date!) + 1);
+    return Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length);
+  }, [logs]);
+
+  const predictedNextPeriod = useCallback((): { date: string; avgCycleLength: number; confidence: 'low' | 'ok' } | null => {
+    const completed = logs.filter(l => l.end_date).slice(0, 6);
+    if (completed.length < 2) return null;
+    const gaps: number[] = [];
+    for (let i = 0; i < completed.length - 1; i++) {
+      const gap = Math.abs(daysBetweenKeys(completed[i].start_date, completed[i + 1].start_date));
+      if (gap >= MIN_PLAUSIBLE_CYCLE_LENGTH && gap <= MAX_PLAUSIBLE_CYCLE_LENGTH) gaps.push(gap);
+    }
+    if (gaps.length === 0) return null;
+    const avg = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
+    return {
+      date: addDaysToKey(logs[0].start_date, avg),
+      avgCycleLength: avg,
+      confidence: gaps.length >= 3 ? 'ok' : 'low'
+    };
+  }, [logs]);
+
+  const isOnPeriod = logs.length > 0 && logs[0].end_date === null;
+  const activeLog = logs.find(l => l.end_date === null) ?? null;
+
+  return {
+    logs, startPeriod, endPeriod, editPeriod, deletePeriod,
+    currentCycleDay, averagePeriodLength, predictedNextPeriod,
+    isOnPeriod, activeLog
+  };
 }

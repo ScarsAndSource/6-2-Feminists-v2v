@@ -92,6 +92,24 @@ export const TAG_LABELS: Record<string, string> = {
   other: 'Other'
 };
 
+export type FlagUrgency = 'urgent' | 'moderate' | 'monitor';
+
+export interface DoctorFlag {
+  id: string;
+  urgency: FlagUrgency;
+  title: string;
+  reason: string;
+}
+
+export interface DoctorRecommendation {
+  shouldVisit: boolean;
+  urgency: FlagUrgency | 'none';
+  flags: DoctorFlag[];
+  headline: string;
+  entryCount: number;
+  lowData: boolean;
+}
+
 export const SEVERITY_LABELS: Record<number, string> = {
   1: 'Mild',
   2: 'Noticeable',

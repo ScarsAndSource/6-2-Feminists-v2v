@@ -1,14 +1,176 @@
-import { useMemo, useState } from 'react';
-import type { Entry } from '../lib/types';
-import { usePeriodLog } from '../hooks/usePeriodLog';
+import { useState, useMemo } from 'react';
 import { Icon } from './Icon';
-const toKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-const localDate = (key: string) => new Date(`${key}T12:00:00`);
-export function CycleCalendar({ entries, compact = false }: { entries: Entry[]; compact?: boolean }) {
-  const { logs, startPeriod, endPeriod, isOnPeriod, predictedNextPeriod, currentCycleDay } = usePeriodLog(); const [month, setMonth] = useState(() => new Date()); const [selected, setSelected] = useState(toKey(new Date())); const today = toKey(new Date());
-  const periodDays = useMemo(() => { const days = new Set<string>(); logs.forEach(log => { const cursor = localDate(log.start_date); const end = localDate(log.end_date ?? today); while (cursor <= end) { days.add(toKey(cursor)); cursor.setDate(cursor.getDate() + 1); } }); return days; }, [logs, today]);
-  const severity = useMemo(() => { const result = new Map<string, number>(); entries.forEach(entry => { const day = entry.created_at.slice(0, 10); const value = Math.max(...entry.tags.map(tag => tag.severity), 0); result.set(day, Math.max(result.get(day) ?? 0, value)); }); return result; }, [entries]);
-  const dayCount = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate(); const blanks = new Date(month.getFullYear(), month.getMonth(), 1).getDay(); const active = logs.find(log => log.end_date === null); const cycleDay = currentCycleDay(); const prediction = predictedNextPeriod; const canSelect = (key: string) => key <= today;
-  const changeMonth = (offset: number) => setMonth(current => new Date(current.getFullYear(), current.getMonth() + offset, 1));
-  return <section className={`glass mt-5 rounded-3xl ${compact ? 'p-4' : 'p-6'}`}><div className="flex items-center justify-between"><button aria-label="Previous month" onClick={() => changeMonth(-1)}><Icon name="chevron_left" className="text-rose-800" /></button><h2 className="font-display text-xl italic text-rose-800">{month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2><button aria-label="Next month" onClick={() => changeMonth(1)}><Icon name="chevron_right" className="text-rose-800" /></button></div><p className="mt-2 text-center text-xs text-rose-950/50">Choose a date, then mark a period start or end.</p><div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs text-rose-950/45">{['S','M','T','W','T','F','S'].map((day, index) => <span key={`${day}${index}`}>{day}</span>)}</div><div className="mt-1 grid grid-cols-7 gap-1">{Array.from({ length: blanks }).map((_, index) => <span key={`blank-${index}`} />)}{Array.from({ length: dayCount }, (_, index) => { const day = index + 1; const key = toKey(new Date(month.getFullYear(), month.getMonth(), day)); const onPeriod = periodDays.has(key); const predicted = prediction?.date === key; const level = severity.get(key); const disabled = !canSelect(key); return <button disabled={disabled} onClick={() => setSelected(key)} key={key} className={`relative grid aspect-square place-items-center rounded-full text-xs transition ${onPeriod ? 'bg-rose-500 text-white' : predicted ? 'border border-dashed border-rose-400 text-rose-600' : 'text-rose-950/75'} ${key === today ? 'ring-2 ring-rose-800 ring-offset-1 ring-offset-rose-50' : ''} ${key === selected ? 'outline outline-2 outline-rose-700 outline-offset-1' : ''} ${disabled ? 'cursor-not-allowed opacity-30' : 'hover:bg-rose-100'}`}>{day}{level && !onPeriod ? <i className="absolute bottom-0.5 h-1 w-1 rounded-full bg-blush-500" style={{ opacity: level / 5 }} /> : null}</button>; })}</div><div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm">{isOnPeriod && active ? <button onClick={() => endPeriod(active.id, selected)} disabled={selected < active.start_date || selected > today} className="inline-flex items-center gap-1.5 font-semibold text-rose-800 disabled:opacity-40"><Icon name="water_drop" size={18} filled />Mark period ended</button> : <button onClick={() => startPeriod(selected)} disabled={selected > today} className="inline-flex items-center gap-1.5 font-semibold text-rose-800 disabled:opacity-40"><Icon name="water_drop" size={18} />Log period start</button>}<span className="text-xs text-rose-950/55">{prediction ? `Next period estimated around ${localDate(prediction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : cycleDay ? `Cycle day ${cycleDay} · add another completed period to estimate timing` : 'Log a period start to add cycle context'}</span></div><p className="mt-3 text-xs text-rose-950/45">Predictions are estimates from your logged dates, not medical advice.</p></section>;
+import { usePeriodLog } from '../hooks/usePeriodLog';
+import { toDateKey, todayKey, dateKeyFromTimestamp, formatDateLabel, daysBetweenKeys } from '../lib/dateUtils';
+import type { Entry } from '../lib/types';
+
+interface CycleCalendarProps {
+  entries: Entry[];
+  compact?: boolean;
+}
+
+export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) {
+  const { logs, startPeriod, endPeriod, isOnPeriod, activeLog, predictedNextPeriod, averagePeriodLength } = usePeriodLog();
+  const [viewMonth, setViewMonth] = useState(() => new Date());
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const periodDaySet = useMemo(() => {
+    const set = new Set<string>();
+    logs.forEach(log => {
+      const end = log.end_date ? new Date(log.end_date + 'T00:00:00') : new Date();
+      const cursor = new Date(log.start_date + 'T00:00:00');
+      while (cursor <= end) {
+        set.add(toDateKey(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    });
+    return set;
+  }, [logs]);
+
+  const entriesByDay = useMemo(() => {
+    const map = new Map<string, Entry[]>();
+    entries.forEach(e => {
+      const day = dateKeyFromTimestamp(e.created_at);
+      map.set(day, [...(map.get(day) || []), e]);
+    });
+    return map;
+  }, [entries]);
+
+  const severityByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    entriesByDay.forEach((dayEntries, day) => {
+      map.set(day, Math.max(...dayEntries.flatMap(e => e.tags.map(t => t.severity)), 0));
+    });
+    return map;
+  }, [entriesByDay]);
+
+  const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
+  const firstWeekday = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay();
+  const monthLabel = viewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const prediction = predictedNextPeriod();
+  const todayK = todayKey();
+
+  const selectedDayEntries = selectedDay ? entriesByDay.get(selectedDay) || [] : [];
+  const selectedDayIsPeriod = selectedDay ? periodDaySet.has(selectedDay) : false;
+  const selectedCycleDay = selectedDay && logs.length > 0 ? daysBetweenKeys(logs[0].start_date, selectedDay) + 1 : null;
+
+  return (
+    <div className={`glass rounded-3xl ${compact ? 'p-4' : 'p-6'}`}>
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))} aria-label="Previous month">
+          <Icon name="chevron_left" className="text-rose-800" />
+        </button>
+        <h3 className="font-display italic text-lg text-rose-800">{monthLabel}</h3>
+        <button onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))} aria-label="Next month">
+          <Icon name="chevron_right" className="text-rose-800" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 mb-2 text-center">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <span key={i} className="text-xs font-sans text-rose-950/40">{d}</span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: firstWeekday }).map((_, i) => <div key={`e${i}`} />)}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1;
+          const dateKey = toDateKey(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day));
+          const isPeriod = periodDaySet.has(dateKey);
+          const isPredicted = prediction && dateKey === prediction.date;
+          const severity = severityByDay.get(dateKey);
+          const isToday = dateKey === todayK;
+          const isFuture = dateKey > todayK;
+          const isSelected = dateKey === selectedDay;
+
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setSelectedDay(dateKey === selectedDay ? null : dateKey)}
+              className={`aspect-square rounded-full flex items-center justify-center text-xs font-sans relative transition-transform
+                ${isPeriod ? 'bg-rose-500 text-white' : isPredicted ? 'border-2 border-dashed border-rose-300 text-rose-500' : isFuture ? 'text-rose-950/30' : 'text-rose-950/70'}
+                ${isToday ? 'ring-2 ring-rose-800 ring-offset-1' : ''}
+                ${isSelected ? 'scale-110 ring-2 ring-rose-400 ring-offset-1' : ''}
+                hover:bg-rose-100/60`}
+            >
+              {day}
+              {severity ? (
+                <span
+                  className={`absolute -bottom-0.5 w-1.5 h-1.5 rounded-full ${isPeriod ? 'bg-white' : 'bg-blush-500'}`}
+                  style={{ opacity: Math.max(severity / 5, 0.35) }}
+                />
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedDay && !compact && (
+        <div className="mt-5 pt-5 border-t border-rose-200/40 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-sans text-sm font-medium text-rose-900">{formatDateLabel(selectedDay)}</span>
+            {selectedCycleDay !== null && selectedCycleDay > 0 && (
+              <span className="text-xs font-sans text-rose-950/50">Cycle day {selectedCycleDay}</span>
+            )}
+          </div>
+
+          {selectedDayEntries.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedDayEntries.flatMap(e => e.tags).map((t, i) => (
+                <span key={i} className="text-xs font-sans bg-white/60 text-rose-900 rounded-full px-2.5 py-1">
+                  {t.tag.replace(/_/g, ' ')}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {!selectedDayIsPeriod && (
+              <button
+                onClick={() => { startPeriod(selectedDay); setSelectedDay(null); }}
+                className="text-xs font-sans font-medium text-rose-800 bg-rose-100 hover:bg-rose-200 rounded-full px-3 py-1.5 flex items-center gap-1.5"
+              >
+                <Icon name="water_drop" size={14} /> Set as period start
+              </button>
+            )}
+            {isOnPeriod && activeLog && selectedDay >= activeLog.start_date && (
+              <button
+                onClick={() => { endPeriod(activeLog.id, selectedDay); setSelectedDay(null); }}
+                className="text-xs font-sans font-medium text-rose-800 bg-rose-100 hover:bg-rose-200 rounded-full px-3 py-1.5 flex items-center gap-1.5"
+              >
+                <Icon name="event_busy" size={14} /> Set as period end
+              </button>
+            )}
+            {activeLog && selectedDay === activeLog.start_date && (
+              <span className="text-xs font-sans text-rose-950/40 self-center">Current period start</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={`flex items-center justify-between flex-wrap gap-2 ${selectedDay && !compact ? 'mt-4' : 'mt-4'}`}>
+        {isOnPeriod && activeLog ? (
+          <button onClick={() => endPeriod(activeLog.id)} className="text-sm font-sans font-medium text-rose-800 flex items-center gap-2">
+            <Icon name="event_busy" size={18} /> Mark period ended today
+          </button>
+        ) : (
+          <button onClick={() => startPeriod()} className="text-sm font-sans font-medium text-rose-800 flex items-center gap-2">
+            <Icon name="water_drop" size={18} /> Log period start today
+          </button>
+        )}
+        <div className="text-right">
+          {prediction && (
+            <div className="text-xs font-sans text-rose-950/50">
+              Next expected around {formatDateLabel(prediction.date)}{prediction.confidence === 'low' && ' (rough estimate)'}
+            </div>
+          )}
+          {averagePeriodLength() && (
+            <div className="text-xs font-sans text-rose-950/40">Avg period length: {averagePeriodLength()} days</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
