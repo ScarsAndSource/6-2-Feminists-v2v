@@ -42,6 +42,7 @@ export interface VisitFollowup {
   outcome: FollowupOutcome | null;
   outcome_note: string | null;
   visit_date: string | null;
+  related_tag: string | null;
   created_at: string;
 }
 

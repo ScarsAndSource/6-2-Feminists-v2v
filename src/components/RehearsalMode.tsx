@@ -4,6 +4,7 @@ import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Heart,
 import type { ComputedStats } from '../lib/types';
 import { getTagLabel } from '../lib/tagLabels';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { AdvocacyCoach } from './AdvocacyCoach';
 
 function cardTilt(i: number) {
   const seeds = [-1.6, 1.2, -0.8, 1.8, -1.3];
@@ -12,9 +13,10 @@ function cardTilt(i: number) {
 
 interface RehearsalModeProps {
   stats: ComputedStats | null;
+  isDemo?: boolean;
 }
 
-export function RehearsalMode({ stats }: RehearsalModeProps) {
+export function RehearsalMode({ stats, isDemo = false }: RehearsalModeProps) {
   const [isListening, setIsListening] = useState(false);
   const [listeningIndex, setListeningIndex] = useState<number | null>(null);
   const [spokenAnswers, setSpokenAnswers] = useState<Record<number, string>>({});
@@ -207,6 +209,9 @@ export function RehearsalMode({ stats }: RehearsalModeProps) {
           New Questions
         </button>
       </div>
+
+      {/* Advocacy Coach (Round Two) - only if not demo mode */}
+      {!isDemo && <AdvocacyCoach stats={stats} />}
     </div>
   );
 }

@@ -27,6 +27,7 @@ export function useFollowups() {
       outcome: FollowupOutcome | null;
       outcomeNote?: string;
       visitDate?: string;
+      relatedTag?: string;
     }) => {
       const { data, error } = await supabase
         .from('visit_followups')
@@ -35,7 +36,8 @@ export function useFollowups() {
           mentioned_before: params.mentionedBefore,
           outcome: params.outcome,
           outcome_note: params.outcomeNote || null,
-          visit_date: params.visitDate || null
+          visit_date: params.visitDate || null,
+          related_tag: params.relatedTag || null
         })
         .select()
         .single();

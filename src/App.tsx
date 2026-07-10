@@ -392,7 +392,7 @@ function AppContent() {
                 Rehearse explaining your symptoms with personalized questions
               </p>
             </div>
-            <RehearsalMode stats={stats} />
+            <RehearsalMode stats={stats} isDemo={demoMode} />
           </div>
         )}
       </main>

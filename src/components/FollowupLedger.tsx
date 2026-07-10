@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Check, MessageSquareText } from 'lucide-react';
 import { useFollowups } from '../hooks/useFollowups';
+import { useCustomTags } from '../hooks/useCustomTags';
+import { TAG_VOCABULARY } from '../lib/types';
+import { getTagLabel, slugifyCustomTag } from '../lib/tagLabels';
 import type { FollowupOutcome } from '../lib/types';
 
 const OUTCOME_OPTIONS: { value: FollowupOutcome; label: string }[] = [
@@ -16,11 +19,18 @@ interface FollowupLedgerProps {
 
 export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
   const { followups, addFollowup } = useFollowups();
+  const { customTags } = useCustomTags();
   const [mentionedBefore, setMentionedBefore] = useState<boolean | null>(null);
   const [outcome, setOutcome] = useState<FollowupOutcome | null>(null);
+  const [relatedTag, setRelatedTag] = useState<string>('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const tagOptions = [
+    ...TAG_VOCABULARY.filter(t => t !== 'other'),
+    ...customTags.map(c => slugifyCustomTag(c.label))
+  ];
 
   const handleSave = async () => {
     if (mentionedBefore === null) return;
@@ -30,7 +40,8 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
         patternReportId,
         mentionedBefore,
         outcome: mentionedBefore ? outcome : null,
-        outcomeNote: note.trim() || undefined
+        outcomeNote: note.trim() || undefined,
+        relatedTag: mentionedBefore && relatedTag ? relatedTag : undefined
       });
       setSaved(true);
     } finally {
@@ -71,6 +82,22 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
 
           {mentionedBefore === true && (
             <div className="space-y-3 animate-fade-in">
+              <div>
+                <label className="text-xs text-rose-500 mb-1.5 block">Which symptom was this about?</label>
+                <select
+                  value={relatedTag}
+                  onChange={e => setRelatedTag(e.target.value)}
+                  className="w-full px-3 py-2 bg-white/70 border border-rose-200 rounded-lg text-sm text-rose-800 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                >
+                  <option value="">Not specified</option>
+                  {tagOptions.map(tag => (
+                    <option key={tag} value={tag}>
+                      {getTagLabel(tag)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 {OUTCOME_OPTIONS.map(opt => (
                   <button
@@ -127,7 +154,9 @@ export function FollowupLedger({ patternReportId }: FollowupLedgerProps) {
                 </span>
                 <span>
                   {f.mentioned_before
-                    ? `Mentioned before — ${OUTCOME_OPTIONS.find(o => o.value === f.outcome)?.label ?? f.outcome}`
+                    ? `${f.related_tag ? getTagLabel(f.related_tag) + ' — ' : ''}${
+                        OUTCOME_OPTIONS.find(o => o.value === f.outcome)?.label ?? f.outcome
+                      }`
                     : 'First time mentioning this'}
                 </span>
               </div>
