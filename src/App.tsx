@@ -1,21 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  FileText,
-  Heart,
-  ChevronRight,
-  Sparkles,
-  MessageCircle,
-  Shield,
-  Activity,
-  ArrowRight,
-  Calendar,
-  Lock,
-  Eye,
-  Feather,
-  Star,
-  Quote,
-  X,
+  FileText, Heart, ChevronRight, Sparkles, MessageCircle, Shield, Activity,
+  ArrowRight, Calendar, Lock, Eye, Feather, Star, Quote, X,
+  Home as HomeIcon, Compass,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
@@ -24,6 +12,7 @@ import { useDemoEntries } from './hooks/useDemoEntries';
 import { useCustomTags } from './hooks/useCustomTags';
 import { useUserSettings } from './hooks/useUserSettings';
 import { SymptomLogger } from './components/SymptomLogger';
+import { Home } from './components/Home';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CaseFile } from './components/CaseFile';
 import { EntryHistory } from './components/EntryHistory';
@@ -37,9 +26,10 @@ import { CycleConstellation } from './components/CycleConstellation';
 import { TextReveal } from './components/TextReveal';
 import { getCyclePhase, themeForPhase } from './lib/cyclePhase';
 import { computeStats } from './lib/aggregation';
+import { hasOnboarded, setOnboarded } from './lib/localFlags';
 import type { Entry, TagEntry } from './lib/types';
 
-type TabType = 'log' | 'casefile' | 'rehearsal';
+type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal';
 
 function AppContent() {
   const { loading: authLoading } = useAuth();
@@ -49,11 +39,13 @@ function AppContent() {
   const { settings: userSettings, loading: settingsLoading } = useUserSettings();
   const nextAppointmentAt = userSettings?.next_appointment_at ?? null;
   const demo = useDemoEntries();
-  const [activeTab, setActiveTab] = useState<TabType>('log');
-  const [showLanding, setShowLanding] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [showLanding, setShowLanding] = useState(false);
+  const [onboarding, setOnboarding] = useState(!hasOnboarded());
   const [demoMode, setDemoMode] = useState(false);
   const hasAutoNavigated = useRef(false);
-  const [focusMode, setFocusMode] = useState(false);
+  const [focusModeManual, setFocusMode] = useState(false);
+  const focusMode = focusModeManual || activeTab === 'timeline' || activeTab === 'casefile';
   const [optimisticEntries, setOptimisticEntries] = useState<Entry[]>([]);
   const entrySubmitCount = useRef(0);
   const [showNudge, setShowNudge] = useState(false);
@@ -104,7 +96,7 @@ function AppContent() {
 
   const exitDemo = () => {
     setDemoMode(false);
-    setActiveTab('log');
+    setActiveTab('home');
   };
 
   const handleAddEntry = async (tags: TagEntry[], cycleDay?: number) => {
@@ -148,6 +140,15 @@ function AppContent() {
     return <LoadingScreen />;
   }
 
+  if (onboarding && !authLoading) {
+    setOnboarded();
+    setTimeout(() => setOnboarding(false), 0);
+  }
+
+  if (onboarding) {
+    return <LoadingScreen />;
+  }
+
   if (showLanding) {
     return (
       <>
@@ -187,28 +188,11 @@ function AppContent() {
 
             <nav className="flex items-center">
               <div className="flex items-center bg-rose-100/70 rounded-2xl p-1 border border-rose-200/50">
-                <TabButton
-                  active={activeTab === 'log'}
-                  onClick={() => setActiveTab('log')}
-                  icon={<Activity className="w-4 h-4" />}
-                >
-                  Track
-                </TabButton>
-                <TabButton
-                  active={activeTab === 'casefile'}
-                  onClick={() => setActiveTab('casefile')}
-                  icon={<FileText className="w-4 h-4" />}
-                  badge={activeEntries.length > 0 ? activeEntries.length : undefined}
-                >
-                  Case File
-                </TabButton>
-                <TabButton
-                  active={activeTab === 'rehearsal'}
-                  onClick={() => setActiveTab('rehearsal')}
-                  icon={<MessageCircle className="w-4 h-4" />}
-                >
-                  Practice
-                </TabButton>
+                <TabButton active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<HomeIcon className="w-4 h-4" />}>Home</TabButton>
+                <TabButton active={activeTab === 'log'} onClick={() => setActiveTab('log')} icon={<Activity className="w-4 h-4" />}>Track</TabButton>
+                <TabButton active={activeTab === 'timeline'} onClick={() => setActiveTab('timeline')} icon={<Compass className="w-4 h-4" />}>Timeline</TabButton>
+                <TabButton active={activeTab === 'casefile'} onClick={() => setActiveTab('casefile')} icon={<FileText className="w-4 h-4" />} badge={activeEntries.length > 0 ? activeEntries.length : undefined}>Case File</TabButton>
+                <TabButton active={activeTab === 'rehearsal'} onClick={() => setActiveTab('rehearsal')} icon={<MessageCircle className="w-4 h-4" />}>Practice</TabButton>
               </div>
             </nav>
 
@@ -239,6 +223,26 @@ function AppContent() {
       )}
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 relative z-10">
+        {activeTab === 'home' && !demoMode && (
+          <Home
+            entries={displayEntries}
+            stats={stats}
+            tagFrequency={tagFrequency}
+            addEntry={handleAddEntry}
+            deleteEntry={deleteEntry}
+            onNavigate={(tab) => setActiveTab(tab)}
+            loading={entriesLoading}
+          />
+        )}
+
+        {activeTab === 'timeline' && !demoMode && (
+          <div className="max-w-3xl mx-auto text-center py-16 animate-fade-in">
+            <p className="text-rose-400 text-sm">
+              Full Timeline (calendar heatmap + complete history) is next up — Home and Track have your recent entries for now.
+            </p>
+          </div>
+        )}
+
         {activeTab === 'log' && !demoMode && (
           <div className="grid lg:grid-cols-5 gap-6 animate-fade-in">
             <div className="lg:col-span-3">

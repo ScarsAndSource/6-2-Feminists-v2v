@@ -53,3 +53,26 @@ export const NEUTRAL_THEME: PhaseTheme = {
 export function themeForPhase(phase: CyclePhase): PhaseTheme {
   return phase ? PHASE_THEME[phase] : NEUTRAL_THEME;
 }
+
+export function estimateCurrentCycleDay(
+  entries: { cycle_day: number | null; created_at: string }[],
+  avgCycleLength: number | null
+): number | null {
+  const withCycleDay = entries
+    .filter(e => e.cycle_day != null)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+  if (withCycleDay.length === 0) return null;
+
+  const mostRecent = withCycleDay[0];
+  const cycleLength = avgCycleLength && avgCycleLength > 0 ? avgCycleLength : 28;
+
+  const daysSince = Math.floor(
+    (Date.now() - new Date(mostRecent.created_at).getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (daysSince > cycleLength) return null; // too stale to guess responsibly
+
+  const raw = (mostRecent.cycle_day as number) + daysSince;
+  return ((raw - 1) % cycleLength) + 1;
+}

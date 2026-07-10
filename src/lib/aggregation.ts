@@ -258,3 +258,82 @@ export function deterministicNarrative(stats: ComputedStats): string {
 
   return lines.join(' ');
 }
+
+export function computeStreak(entries: Entry[]): number {
+  if (entries.length === 0) return 0;
+
+  const dayKeys = new Set(entries.map(e => new Date(e.created_at).toISOString().slice(0, 10)));
+
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  const todayKey = cursor.toISOString().slice(0, 10);
+  if (!dayKeys.has(todayKey)) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!dayKeys.has(cursor.toISOString().slice(0, 10))) return 0;
+  }
+
+  let streak = 0;
+  while (dayKeys.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+export type SeverityTrendDirection = 'rising' | 'falling' | 'steady';
+
+export interface SeverityTrend {
+  tag: string;
+  direction: SeverityTrendDirection;
+  earlyAvg: number;
+  recentAvg: number;
+}
+
+export function computeSeverityTrend(entries: Entry[]): SeverityTrend | null {
+  if (entries.length < 4) return null;
+
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+  const mid = Math.floor(sorted.length / 2);
+  const earlyHalf = sorted.slice(0, mid);
+  const recentHalf = sorted.slice(mid);
+
+  const tagCounts = new Map<string, number>();
+  for (const e of sorted) {
+    for (const t of e.tags) {
+      if (t.tag === 'other') continue;
+      tagCounts.set(t.tag, (tagCounts.get(t.tag) || 0) + 1);
+    }
+  }
+  const topTag = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!topTag) return null;
+
+  const avgFor = (subset: Entry[]) => {
+    let sum = 0;
+    let n = 0;
+    for (const e of subset) {
+      for (const t of e.tags) {
+        if (t.tag !== topTag) continue;
+        sum += t.severity;
+        n += 1;
+      }
+    }
+    return n > 0 ? sum / n : null;
+  };
+
+  const earlyAvg = avgFor(earlyHalf);
+  const recentAvg = avgFor(recentHalf);
+  if (earlyAvg == null || recentAvg == null) return null;
+
+  const delta = recentAvg - earlyAvg;
+  const direction: SeverityTrendDirection = delta > 0.4 ? 'rising' : delta < -0.4 ? 'falling' : 'steady';
+
+  return {
+    tag: topTag,
+    direction,
+    earlyAvg: Math.round(earlyAvg * 10) / 10,
+    recentAvg: Math.round(recentAvg * 10) / 10
+  };
+}
