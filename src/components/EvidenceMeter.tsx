@@ -11,7 +11,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Shield, ArrowRight } from 'lucide-react';
+import { ChevronDown, Shield, ArrowRight } from 'lucide-react';
 import type { Entry, ComputedStats } from '../lib/types';
 import { computeEvidenceScore, type EvidenceFactor, type EvidenceResult } from '../lib/evidenceScore';
 

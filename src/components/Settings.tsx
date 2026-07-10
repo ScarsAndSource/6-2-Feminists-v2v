@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Shield, Lock, Eye, Feather, Download, ChevronDown,
+  X, Shield, Lock, Eye, Feather, Download,
   Moon, Info,
 } from 'lucide-react';
 import { getAvgCycleLength, setAvgCycleLength } from '../lib/localFlags';

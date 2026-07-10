@@ -119,18 +119,6 @@ void main() {
     const uTime = gl.getUniformLocation(program, 'u_time');
     const uRes  = gl.getUniformLocation(program, 'u_resolution');
 
-    let mouseX = canvas.width  / 2;
-    let mouseY = canvas.height / 2;
-
-    const handleMouse = (event: MouseEvent) => {
-      const rect = canvas!.getBoundingClientRect();
-      if (rect.width && rect.height) {
-        mouseX = ((event.clientX - rect.left) / rect.width)  * canvas!.width;
-        mouseY = (1.0 - (event.clientY - rect.top) / rect.height) * canvas!.height;
-      }
-    };
-    window.addEventListener('mousemove', handleMouse);
-
     let animationId: number;
     function render(t: number) {
       if (typeof ResizeObserver === 'undefined') syncSize();
@@ -144,7 +132,6 @@ void main() {
 
     return () => {
       cancelAnimationFrame(animationId);
-      window.removeEventListener('mousemove', handleMouse);
     };
   }, []);
 

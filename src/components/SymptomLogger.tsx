@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, ChevronRight, Sparkles, Undo2, AlertCircle, History } from 'lucide-react';
+import { Mic, Check, X, ChevronDown, ChevronUp, ChevronRight, Sparkles, Undo2, AlertCircle, History } from 'lucide-react';
 import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry, type CustomTag } from '../lib/types';
 import type { Entry } from '../lib/types';
 import { getTagLabel, slugifyCustomTag } from '../lib/tagLabels';

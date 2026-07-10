@@ -1,42 +1,55 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from './useAuth';
+/**
+ * useUserSettings — localStorage-backed, no authentication required.
+ *
+ * Stores user settings (next_appointment_at) locally.
+ * Preserves the exact same hook API so AppointmentPrompt.tsx and App.tsx
+ * need no modifications.
+ */
+import { useState, useCallback, useEffect } from 'react';
 import type { UserSettings } from '../lib/types';
 
-export function useUserSettings() {
-  const { user, loading: authLoading } = useAuth();
-  const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [loading, setLoading] = useState(true);
+const STORAGE_KEY = 'undismissed:user_settings';
 
-  const fetchSettings = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data, error } = await supabase.from('user_settings').select('*').maybeSingle();
-    if (!error) setSettings(data);
-    setLoading(false);
-  }, [user]);
+function load(): UserSettings | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as UserSettings;
+  } catch {
+    return null;
+  }
+}
+
+function save(settings: UserSettings | null) {
+  try {
+    if (settings == null) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function useUserSettings() {
+  const [settings, setSettings] = useState<UserSettings | null>(() => load());
+  const [loading] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (user) {
-      fetchSettings();
-    } else {
-      setSettings(null);
-      setLoading(false);
-    }
-  }, [fetchSettings, user, authLoading]);
+    save(settings);
+  }, [settings]);
 
-  const setNextAppointment = useCallback(async (dateIso: string | null) => {
-    if (!user) throw new Error('User not authenticated');
-    const { data, error } = await supabase
-      .from('user_settings')
-      .upsert({ user_id: user.id, next_appointment_at: dateIso, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-      .select()
-      .single();
-    if (error) throw error;
-    setSettings(data);
-    return data;
-  }, [user]);
+  const setNextAppointment = useCallback(async (dateIso: string | null): Promise<UserSettings> => {
+    const updated: UserSettings = {
+      user_id: 'local',
+      next_appointment_at: dateIso,
+      updated_at: new Date().toISOString(),
+    };
+    setSettings(updated);
+    save(updated);
+    return updated;
+  }, []);
 
   return { settings, loading, setNextAppointment };
 }

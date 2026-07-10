@@ -3,7 +3,7 @@ import {
   Home, Activity, Compass, FileText, MessageCircle,
 } from 'lucide-react';
 
-type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal';
+type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal' | 'insights';
 
 interface BottomNavProps {
   activeTab: TabType;

@@ -1,11 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import {
   FileText, Heart, Sparkles, MessageCircle, Shield, Activity,
   Calendar, X,
   Home as HomeIcon, Compass, Settings as SettingsIcon,
 } from 'lucide-react';
-import { AuthProvider, useAuth } from './hooks/useAuth';
+import { AuthProvider } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
 import { usePatternReports } from './hooks/usePatternReports';
 import { useDemoEntries } from './hooks/useDemoEntries';
@@ -39,8 +38,7 @@ import type { Entry, TagEntry, PatternReport } from './lib/types';
 type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal' | 'insights';
 
 function AppContent() {
-  const { loading: authLoading } = useAuth();
-  const { entries, loading: entriesLoading, addEntry, deleteEntry } = useEntries();
+  const { entries, addEntry, deleteEntry } = useEntries();
   const { saveReport, reports, loading: reportsLoading } = usePatternReports();
   const { customTags } = useCustomTags();
   const { settings: userSettings } = useUserSettings();
@@ -156,16 +154,9 @@ function AppContent() {
     }
   }, [nextAppointmentAt]);
 
-  // Only block on auth + first entries fetch. Secondary data (customTags,
-  // settings) loads in the background without blocking the UI — this is
-  // intentional so the tracker is usable the instant auth resolves.
-  if (authLoading || (entriesLoading && entries.length === 0)) {
-    return <LoadingScreen />;
-  }
-
-  // Wait until auth resolves before deciding whether to show onboarding —
-  // prevents a flash of onboarding on returning sessions.
-  if (onboarding && !authLoading) {
+  // Auth is removed — localStorage hooks resolve instantly (loading=false).
+  // The LoadingScreen component is intentionally kept for the demo flow.
+  if (onboarding) {
     return <OnboardingFlow onComplete={() => setOnboarding(false)} />;
   }
 
@@ -223,7 +214,7 @@ function AppContent() {
               <div className="flex items-center gap-2 opacity-70">
                 <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse-soft" />
                 <span className="text-xs text-rose-400 hidden sm:block font-medium">
-                  {demoMode ? 'Sample' : 'Synced'}
+                  {demoMode ? 'Sample' : 'Local'}
                 </span>
               </div>
             </div>
@@ -259,12 +250,12 @@ function AppContent() {
             addEntry={handleAddEntry}
             deleteEntry={deleteEntry}
             onNavigate={(tab) => setActiveTab(tab)}
-            loading={entriesLoading}
+            loading={false}
           />
         )}
 
         {activeTab === 'timeline' && !demoMode && (
-          <Timeline entries={displayEntries} onDelete={deleteEntry} loading={entriesLoading} />
+          <Timeline entries={displayEntries} onDelete={deleteEntry} loading={false} />
         )}
 
         {activeTab === 'insights' && !demoMode && (
@@ -318,7 +309,7 @@ function AppContent() {
                   <SymptomLogger
                     onSubmit={handleAddEntry}
                     onDelete={deleteEntry}
-                    disabled={entriesLoading}
+                    disabled={false}
                     customTags={customTags}
                     onFocusChange={setFocusMode}
                     lastEntry={lastEntry}
@@ -330,7 +321,7 @@ function AppContent() {
             </div>
 
             <div className="lg:col-span-2">
-              <EntryHistory entries={displayEntries} onDelete={deleteEntry} loading={entriesLoading} />
+              <EntryHistory entries={displayEntries} onDelete={deleteEntry} loading={false} />
             </div>
           </div>
         )}
@@ -440,7 +431,7 @@ function AppContent() {
   );
 }
 
-function LoadingScreen() {
+export function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-rose-50">
       <CycleAmbientBackground phase={null} />

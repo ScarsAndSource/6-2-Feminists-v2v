@@ -1,75 +1,66 @@
+/**
+ * usePatternReports — localStorage-backed, no authentication required.
+ *
+ * Reports are stored as JSON under "undismissed:pattern_reports".
+ * The saveReport / fetchReports API is preserved exactly so CaseFile.tsx
+ * and App.tsx need no modifications.
+ */
 import { useCallback, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from './useAuth';
 import type { PatternReport } from '../lib/types';
 
+const STORAGE_KEY = 'undismissed:pattern_reports';
+
+function load(): PatternReport[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function save(reports: PatternReport[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+  } catch {
+    // ignore
+  }
+}
+
+function makeId(): string {
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export function usePatternReports() {
-  const { user, loading: authLoading } = useAuth();
-  const [reports, setReports] = useState<PatternReport[]>([]);
+  const [reports, setReports] = useState<PatternReport[]>(() => load());
   const [loading, setLoading] = useState(false);
 
-  const fetchReports = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('pattern_reports')
-        .select('id, user_id, computed_stats, narrative, provider, generated_at')
-        .order('generated_at', { ascending: false })
-        .limit(20);
-
-      if (error) {
-        console.error('Failed to fetch pattern reports:', error);
-        return;
-      }
-
-      setReports((data ?? []) as PatternReport[]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  // fetch when auth state resolves
   useEffect(() => {
-    if (authLoading) return;
-    if (user) {
-      fetchReports();
-    } else {
-      setReports([]);
-      setLoading(false);
-    }
-  }, [fetchReports, user, authLoading]);
+    save(reports);
+  }, [reports]);
+
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    setReports(load());
+    setLoading(false);
+  }, []);
 
   const saveReport = useCallback(async (report: PatternReport): Promise<string | null> => {
-    if (!user) {
-      console.error('Failed to save pattern report: user not authenticated');
-      return null;
-    }
-    const { data, error } = await supabase
-      .from('pattern_reports')
-      .insert({
-        user_id: user.id,
-        computed_stats: report.computed_stats,
-        narrative: report.narrative,
-        provider: report.provider
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error('Failed to save pattern report:', error);
-      return null;
-    }
-
-    // add the new report to the front of the local list
+    const id = makeId();
     const newReport: PatternReport = {
       ...report,
-      id: data.id as string,
+      id,
+      generated_at: report.generated_at || new Date().toISOString(),
     };
-    setReports(prev => [newReport, ...prev]);
-
-    return data.id as string;
-  }, [user]);
+    setReports(prev => {
+      const next = [newReport, ...prev].slice(0, 20); // keep latest 20
+      save(next);
+      return next;
+    });
+    return id;
+  }, []);
 
   return { reports, loading, fetchReports, saveReport };
 }

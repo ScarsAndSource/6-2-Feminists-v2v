@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { List, Grid3X3, Clock, Trash2 } from 'lucide-react';
+import { List, Grid3X3 } from 'lucide-react';
 import type { Entry } from '../lib/types';
 import { EntryRow } from './EntryRow';
 import { TimelineHeatmap } from './TimelineHeatmap';
