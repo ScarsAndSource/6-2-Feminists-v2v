@@ -1,6 +1,6 @@
 import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Heart } from 'lucide-react';
 import type { ComputedStats } from '../lib/types';
-import { TAG_LABELS } from '../lib/types';
+import { getTagLabel } from '../lib/tagLabels';
 
 interface RehearsalModeProps {
   stats: ComputedStats | null;
@@ -115,7 +115,7 @@ function generateQuestions(stats: ComputedStats): { question: string; context: s
   const topTags = stats.tag_frequency.filter(t => t.tag !== 'other');
   if (topTags.length > 0) {
     const top = topTags[0];
-    const label = TAG_LABELS[top.tag] || top.tag.replace(/_/g, ' ');
+    const label = getTagLabel(top.tag);
     questions.push({
       question: `You mentioned ${label.toLowerCase()} ${top.count} time${top.count > 1 ? 's' : ''}. Can you describe what a typical episode feels like?`,
       context: `${top.count} occurrences logged`
@@ -124,7 +124,7 @@ function generateQuestions(stats: ComputedStats): { question: string; context: s
 
   if (topTags.length > 1) {
     const second = topTags[1];
-    const label = TAG_LABELS[second.tag] || second.tag.replace(/_/g, ' ');
+    const label = getTagLabel(second.tag);
     questions.push({
       question: `How does ${label.toLowerCase()} compare in severity to other symptoms you've tracked?`,
       context: `${second.count} occurrences, second most frequent`
@@ -133,8 +133,8 @@ function generateQuestions(stats: ComputedStats): { question: string; context: s
 
   const strongCo = stats.co_occurrence.find(c => !c.low_confidence && c.n >= 3);
   if (strongCo) {
-    const tagA = TAG_LABELS[strongCo.tag_a] || strongCo.tag_a;
-    const tagB = TAG_LABELS[strongCo.tag_b] || strongCo.tag_b;
+    const tagA = getTagLabel(strongCo.tag_a);
+    const tagB = getTagLabel(strongCo.tag_b);
     questions.push({
       question: `${tagA} and ${tagB} tended to show up within about ${strongCo.lag_days_avg.toFixed(0)} days of each other. Do you notice these happening together?`,
       context: `${strongCo.n} co-occurrences detected`
@@ -143,7 +143,7 @@ function generateQuestions(stats: ComputedStats): { question: string; context: s
 
   const sev = stats.severity_by_tag.find(s => !s.low_confidence && s.avg_severity >= 3);
   if (sev) {
-    const label = TAG_LABELS[sev.tag] || sev.tag.replace(/_/g, ' ');
+    const label = getTagLabel(sev.tag);
     questions.push({
       question: `Your ${label.toLowerCase()} averaged ${sev.avg_severity.toFixed(1)} out of 5 in severity. What does that look like in your daily life?`,
       context: `Average severity across ${sev.n} entries`
@@ -152,7 +152,7 @@ function generateQuestions(stats: ComputedStats): { question: string; context: s
 
   if (stats.cycle_day_correlation && stats.cycle_day_correlation.length > 0) {
     const corr = stats.cycle_day_correlation[0];
-    const label = TAG_LABELS[corr.tag] || corr.tag.replace(/_/g, ' ');
+    const label = getTagLabel(corr.tag);
     questions.push({
       question: `There's a pattern of ${label.toLowerCase()} around cycle day ${Math.round(corr.avg_cycle_day)}. Has this always tracked with your cycle?`,
       context: `Cycle day correlation detected`

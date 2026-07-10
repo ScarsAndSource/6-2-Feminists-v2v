@@ -67,7 +67,11 @@ async function seedEntries(userId) {
       cycle_day: null,
       created_at: daysAgo(5)
     },
-    { user_id: userId, tags: [{ tag: 'other', severity: 1, note: 'jaw tightness' }], cycle_day: null, created_at: daysAgo(15) }
+    { user_id: userId, tags: [{ tag: 'other', severity: 2, note: 'jaw tightness' }], cycle_day: null, created_at: daysAgo(15) },
+    { user_id: userId, tags: [{ tag: 'other', severity: 3, note: 'jaw tightness' }], cycle_day: null, created_at: daysAgo(21) },
+    { user_id: userId, tags: [{ tag: 'other', severity: 2, note: 'jaw tightness' }], cycle_day: null, created_at: daysAgo(33) },
+    { user_id: userId, tags: [{ tag: 'custom_jaw_tightness', severity: 3 }], cycle_day: null, created_at: daysAgo(8) },
+    { user_id: userId, tags: [{ tag: 'custom_jaw_tightness', severity: 2 }], cycle_day: null, created_at: daysAgo(2) }
   ];
 
   const { error } = await admin.from('entries').insert(entries);
@@ -75,7 +79,50 @@ async function seedEntries(userId) {
   console.log(`Seeded ${entries.length} entries for demo user ${userId}`);
 }
 
+async function seedCustomTags(userId) {
+  const { error: delErr } = await admin.from('custom_tags').delete().eq('user_id', userId);
+  if (delErr) throw delErr;
+
+  const { error } = await admin.from('custom_tags').insert({
+    user_id: userId,
+    label: 'Jaw Tightness',
+    source_note: 'jaw tightness'
+  });
+  if (error) throw error;
+  console.log('Seeded 1 custom tag for demo user');
+}
+
+async function seedFollowups(userId) {
+  const { error: delErr } = await admin.from('visit_followups').delete().eq('user_id', userId);
+  if (delErr) throw delErr;
+
+  const followups = [
+    {
+      user_id: userId,
+      pattern_report_id: null,
+      mentioned_before: true,
+      outcome: 'dismissed',
+      outcome_note: 'Told it was probably just stress',
+      created_at: daysAgo(20)
+    },
+    {
+      user_id: userId,
+      pattern_report_id: null,
+      mentioned_before: true,
+      outcome: 'tested',
+      outcome_note: 'Ordered bloodwork, results came back normal',
+      created_at: daysAgo(9)
+    }
+  ];
+
+  const { error } = await admin.from('visit_followups').insert(followups);
+  if (error) throw error;
+  console.log(`Seeded ${followups.length} follow-up records for demo user`);
+}
+
 const id = await getOrCreateDemoUser();
 await seedEntries(id);
+await seedCustomTags(id);
+await seedFollowups(id);
 console.log('\nDEMO_USER_ID =', id);
 console.log('Now run: supabase secrets set DEMO_USER_ID=' + id);

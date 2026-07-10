@@ -1,4 +1,5 @@
 import type { Entry, ComputedStats } from './types';
+import { getTagLabel } from './tagLabels';
 
 const CO_OCCURRENCE_WINDOW_DAYS = 3;
 const MIN_SAMPLE_SIZE = 3;
@@ -222,7 +223,7 @@ export function deterministicNarrative(stats: ComputedStats): string {
   }
 
   const lines: string[] = [];
-  const topLabel = top.tag.replace(/_/g, ' ');
+  const topLabel = getTagLabel(top.tag);
   lines.push(
     `${topLabel} was logged ${top.count} time${top.count > 1 ? 's' : ''} across ${stats.entry_count} entries, more than any other tracked symptom.`
   );
@@ -244,8 +245,8 @@ export function deterministicNarrative(stats: ComputedStats): string {
   );
 
   for (const c of strongCoOccurrences.slice(0, 2)) {
-    const tagA = c.tag_a.replace(/_/g, ' ');
-    const tagB = c.tag_b.replace(/_/g, ' ');
+    const tagA = getTagLabel(c.tag_a);
+    const tagB = getTagLabel(c.tag_b);
     lines.push(
       `${tagA} and ${tagB} were logged within about ${c.lag_days_avg.toFixed(1)} days of each other, ${c.n} time${c.n > 1 ? 's' : ''}.`
     );
