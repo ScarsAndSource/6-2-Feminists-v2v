@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { ArrowRight, FileText, MessageCircle, Lock, Heart } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
+// ─── WebGL Shader Background ──────────────────────────────────────────────────
 function ShaderBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -8,7 +9,7 @@ function ShaderBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') as WebGLRenderingContext | null;
+    const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
     if (!gl) return;
 
     function syncSize() {
@@ -67,26 +68,27 @@ float snoise(vec2 v) {
 void main() {
     vec2 uv = v_texCoord;
     vec2 p = (uv - 0.5) * vec2(u_resolution.x/u_resolution.y, 1.0);
-    
-    vec3 surface = vec3(0.984, 0.976, 0.969);
-    vec3 rose_deep = vec3(0.478, 0.114, 0.282);
-    vec3 rose_mid = vec3(0.831, 0.271, 0.498);
-    vec3 blush_soft = vec3(0.957, 0.839, 0.890);
+
+    // Botanical Intimacy Palette
+    vec3 surface    = vec3(0.984, 0.976, 0.969); // #fbf9f7
+    vec3 rose_deep  = vec3(0.478, 0.114, 0.282); // #7a1d48
+    vec3 rose_mid   = vec3(0.831, 0.271, 0.498); // #d4457f
+    vec3 blush_soft = vec3(0.957, 0.839, 0.890); // #f4d6e3
 
     float n1 = snoise(p * 0.5 + u_time * 0.02);
     float n2 = snoise(p * 1.2 - u_time * 0.04);
     float n3 = snoise(p * 0.8 + vec2(u_time * 0.015, -u_time * 0.02));
-    
+
     vec3 color = surface;
-    
+
     float bleed1 = smoothstep(-0.6, 0.6, n1);
     float bleed2 = smoothstep(-0.2, 0.8, n2);
-    float bleed3 = smoothstep(0.0, 0.9, n3);
-    
+    float bleed3 = smoothstep(0.0,  0.9, n3);
+
     color = mix(color, blush_soft, bleed1 * 0.4);
-    color = mix(color, rose_mid, bleed2 * 0.15);
-    color = mix(color, rose_deep, bleed3 * 0.08);
-    
+    color = mix(color, rose_mid,   bleed2 * 0.15);
+    color = mix(color, rose_deep,  bleed3 * 0.08);
+
     float grain = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
     color += (grain - 0.5) * 0.02;
 
@@ -94,9 +96,9 @@ void main() {
 }`;
 
     function createShader(type: number, src: string) {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
+      const s = gl!.createShader(type)!;
+      gl!.shaderSource(s, src);
+      gl!.compileShader(s);
       return s;
     }
 
@@ -115,30 +117,30 @@ void main() {
     gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 
     const uTime = gl.getUniformLocation(program, 'u_time');
-    const uRes = gl.getUniformLocation(program, 'u_resolution');
+    const uRes  = gl.getUniformLocation(program, 'u_resolution');
 
-    let mouseX = canvas.width / 2;
+    let mouseX = canvas.width  / 2;
     let mouseY = canvas.height / 2;
 
     const handleMouse = (event: MouseEvent) => {
       const rect = canvas!.getBoundingClientRect();
       if (rect.width && rect.height) {
-        mouseX = ((event.clientX - rect.left) / rect.width) * canvas!.width;
+        mouseX = ((event.clientX - rect.left) / rect.width)  * canvas!.width;
         mouseY = (1.0 - (event.clientY - rect.top) / rect.height) * canvas!.height;
       }
     };
     window.addEventListener('mousemove', handleMouse);
 
+    let animationId: number;
     function render(t: number) {
       if (typeof ResizeObserver === 'undefined') syncSize();
-      gl.viewport(0, 0, canvas!.width, canvas!.height);
-      if (uTime) gl.uniform1f(uTime, t * 0.001);
-      if (uRes) gl.uniform2f(uRes, canvas!.width, canvas!.height);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl!.viewport(0, 0, canvas!.width, canvas!.height);
+      if (uTime) gl!.uniform1f(uTime, t * 0.001);
+      if (uRes)  gl!.uniform2f(uRes, canvas!.width, canvas!.height);
+      gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
       animationId = requestAnimationFrame(render);
     }
-
-    let animationId = requestAnimationFrame(render);
+    animationId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(animationId);
@@ -155,6 +157,7 @@ void main() {
   );
 }
 
+// ─── Botanical Floating Accents ───────────────────────────────────────────────
 function BotanicalAccents() {
   const svg = (
     <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -170,8 +173,8 @@ function BotanicalAccents() {
           0%, 100% { opacity: 0.3; transform: scale(1); }
           50% { opacity: 0.6; transform: scale(1.05); }
         }
-        .stem { stroke: #7a1d48; stroke-width: 1.5; fill: none; stroke-dasharray: 400; stroke-dashoffset: 400; animation: draw 4s ease-out forwards; }
-        .leaf { fill: #d4457f; opacity: 0.4; transform-origin: center; animation: sway 8s ease-in-out infinite; }
+        .stem  { stroke: #7a1d48; stroke-width: 1.5; fill: none; stroke-dasharray: 400; stroke-dashoffset: 400; animation: draw 4s ease-out forwards; }
+        .leaf  { fill: #d4457f; opacity: 0.4; transform-origin: center; animation: sway 8s ease-in-out infinite; }
         .bloom { fill: #f489b4; opacity: 0.3; transform-origin: center; animation: pulse 6s ease-in-out infinite; }
       `}</style>
       <path className="stem" d="M200,380 Q180,280 200,180 T220,50" />
@@ -192,62 +195,110 @@ function BotanicalAccents() {
   );
 }
 
+// ─── Material Symbol helper ───────────────────────────────────────────────────
+// Renders a Material Symbols Outlined icon. fontVariationSettings controls
+// fill (0=outlined, 1=filled), weight etc.
+function MSIcon({
+  name,
+  className = 'text-[24px]',
+  fill = 0,
+}: {
+  name: string;
+  className?: string;
+  fill?: number;
+}) {
+  return (
+    <span
+      className={`material-symbols-outlined ${className}`}
+      style={{ fontVariationSettings: `'FILL' ${fill}` }}
+    >
+      {name}
+    </span>
+  );
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface LandingPageProps {
   onStart: () => void;
   onViewSample: () => void;
 }
 
+// ─── Landing Page ─────────────────────────────────────────────────────────────
 export function LandingPage({ onStart, onViewSample }: LandingPageProps) {
   return (
-    <div className="min-h-screen relative bg-cream-50 overflow-x-hidden selection:bg-rose-800 selection:text-rose-200">
+    <div className="min-h-screen relative bg-[#fbf9f7] overflow-x-hidden selection:bg-rose-800/20 selection:text-rose-900">
+      {/* WebGL animated background */}
       <ShaderBackground />
+
+      {/* Floating botanical accents */}
       <BotanicalAccents />
 
-      <header className="fixed top-0 w-full z-50 flex justify-between items-center px-16 h-24 bg-cream-50/30 backdrop-blur-md border-b border-white/20 hidden md:flex">
+      {/* ── Desktop Navigation ── */}
+      <header className="fixed top-0 w-full z-50 hidden md:flex justify-between items-center px-16 h-24 bg-[#fbf9f7]/30 backdrop-blur-md border-b border-white/20">
         <div className="font-display text-[32px] text-rose-900 tracking-wide">
           HerWellness
         </div>
         <nav className="flex items-center gap-10">
-          <a className="text-[12px] text-rose-600/70 hover:text-rose-900 hover:opacity-100 transition-all duration-300 tracking-[0.2em] uppercase font-semibold" href="#">Tracker</a>
-          <a className="text-[12px] text-rose-600/70 hover:text-rose-900 hover:opacity-100 transition-all duration-300 tracking-[0.2em] uppercase font-semibold" href="#">Case File</a>
-          <a className="text-[12px] text-rose-600/70 hover:text-rose-900 hover:opacity-100 transition-all duration-300 tracking-[0.2em] uppercase font-semibold" href="#">History</a>
-          <a className="text-[12px] text-rose-600/70 hover:text-rose-900 hover:opacity-100 transition-all duration-300 tracking-[0.2em] uppercase font-semibold" href="#">Rehearsal</a>
+          {['Tracker', 'Case File', 'History', 'Rehearsal'].map((item) => (
+            <a
+              key={item}
+              href="#"
+              className="text-[12px] text-rose-600/70 hover:text-rose-900 hover:opacity-100 transition-all duration-300 tracking-[0.2em] uppercase font-semibold"
+            >
+              {item}
+            </a>
+          ))}
         </nav>
-        <button className="w-12 h-12 rounded-full flex items-center justify-center bg-white/50 text-rose-900 hover:bg-white transition-colors shadow-sm">
-          <Heart className="w-5 h-5" />
+        <button
+          onClick={onStart}
+          className="w-12 h-12 rounded-full flex items-center justify-center bg-white/50 text-rose-900 hover:bg-white transition-colors shadow-sm"
+          aria-label="Open app"
+        >
+          <MSIcon name="account_circle" className="text-[20px]" />
         </button>
       </header>
 
-      <header className="fixed top-0 w-full z-50 flex justify-center items-center h-20 bg-cream-50/40 backdrop-blur-md md:hidden border-b border-white/20">
+      {/* ── Mobile Navigation ── */}
+      <header className="fixed top-0 w-full z-50 flex justify-center items-center h-20 bg-[#fbf9f7]/40 backdrop-blur-md md:hidden border-b border-white/20">
         <div className="font-display text-[28px] text-rose-900 tracking-wide">
           HerWellness
         </div>
       </header>
 
+      {/* ── Main ── */}
       <main className="pt-32 md:pt-48 pb-24 px-6 md:px-16 max-w-[1400px] mx-auto flex flex-col items-center relative z-10">
+
+        {/* ── Hero ── */}
         <section className="w-full flex flex-col items-center text-center mb-48 relative">
-          <div className="absolute -top-16 md:-top-20 right-[5%] md:right-[20%] rotate-12 text-rose-800 font-script text-[28px] md:text-[32px] opacity-80">
-            100% private & anonymous
+          {/* Handwritten annotation */}
+          <div className="fade-up-1 absolute -top-16 md:-top-20 right-[5%] md:right-[20%] rotate-12 text-rose-800 font-script text-[28px] md:text-[32px] opacity-80 pointer-events-none">
+            100% private &amp; anonymous
           </div>
 
-          <h1 className="font-display text-[56px] md:text-[80px] lg:text-[100px] text-rose-900 leading-[1.1] tracking-wide max-w-5xl mx-auto mb-10 z-10 relative">
-            Your Symptoms, <br /><span className="italic font-light text-rose-600">Beautifully Heard.</span>
+          <h1 className="fade-up-2 font-display text-[56px] md:text-[80px] lg:text-[100px] text-rose-900 leading-[1.1] tracking-wide max-w-5xl mx-auto mb-10 z-10 relative">
+            Your Symptoms,{' '}
+            <br />
+            <span className="italic font-light text-rose-600">Beautifully Heard.</span>
           </h1>
 
-          <p className="font-sans text-[20px] md:text-[24px] text-rose-700/80 max-w-3xl mx-auto mb-16 leading-loose font-light">
-            A digital sanctuary designed for profound visibility. We believe tracking your health should feel like writing in a beautiful journal—private, intimate, and deeply validating.
+          <p className="fade-up-3 font-sans text-[20px] md:text-[24px] text-rose-700/80 max-w-3xl mx-auto mb-16 leading-loose font-light">
+            A digital sanctuary designed for profound visibility. We believe tracking your health should feel like
+            writing in a beautiful journal—private, intimate, and deeply validating.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="fade-up-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {/* Primary CTA */}
             <button
               onClick={onStart}
               className="btn-shimmer inline-flex items-center justify-center px-12 py-5 text-white rounded-full text-[13px] tracking-[0.2em] uppercase font-semibold"
             >
               <span className="flex items-center gap-3">
                 Begin Your Journal
-                <ArrowRight className="w-[18px] h-[18px]" />
+                <MSIcon name="arrow_forward" className="text-[18px]" />
               </span>
             </button>
+
+            {/* Secondary CTA */}
             <button
               onClick={onViewSample}
               className="px-8 py-5 bg-white/60 backdrop-blur-sm border border-rose-300/40 text-rose-700 font-medium rounded-full text-sm hover:bg-white/80 hover:border-rose-400/60 transition-all hover:-translate-y-0.5"
@@ -260,8 +311,9 @@ export function LandingPage({ onStart, onViewSample }: LandingPageProps) {
           </div>
         </section>
 
+        {/* ── Features Grid ── */}
         <section className="w-full max-w-6xl mx-auto mb-48">
-          <div className="text-center mb-24">
+          <div className="text-center mb-24 fade-up-1">
             <h2 className="font-display text-[40px] md:text-[48px] text-rose-900 mb-6 italic tracking-wide">
               Empowering Your Narrative
             </h2>
@@ -271,38 +323,44 @@ export function LandingPage({ onStart, onViewSample }: LandingPageProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16">
-            <div className="bg-white/60 backdrop-blur-2xl border border-rose-500/30 rounded-[2.5rem] p-12 flex flex-col items-center text-center gap-8 hover:-translate-y-2.5 transition-transform duration-500 group">
+            {/* Card 1 – Case File */}
+            <div className="fade-up-2 bg-white/60 backdrop-blur-2xl border border-rose-500/30 rounded-[2.5rem] p-12 flex flex-col items-center text-center gap-8 hover:-translate-y-2.5 transition-transform duration-500 group">
               <div className="w-20 h-20 rounded-full bg-white/60 flex items-center justify-center text-rose-900 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:scale-110 transition-transform duration-500">
-                <FileText className="w-8 h-8" />
+                <MSIcon name="folder_shared" className="text-[32px]" />
               </div>
               <div>
                 <h3 className="font-display text-[32px] text-rose-900 mb-4 italic tracking-wide">Case File</h3>
                 <p className="font-sans text-[16px] text-rose-700/80 leading-loose font-light">
-                  A beautifully synthesized clinical summary of your logs, ready to hand to your practitioner. No more scrambling for dates or forgotten symptoms.
+                  A beautifully synthesized clinical summary of your logs, ready to hand to your practitioner.
+                  No more scrambling for dates or forgotten symptoms.
                 </p>
               </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-2xl border border-rose-500/30 rounded-[2.5rem] p-12 flex flex-col items-center text-center gap-8 hover:-translate-y-2.5 transition-transform duration-500 group md:translate-y-12">
+            {/* Card 2 – Rehearsal Mode (offset) */}
+            <div className="fade-up-3 bg-white/60 backdrop-blur-2xl border border-rose-500/30 rounded-[2.5rem] p-12 flex flex-col items-center text-center gap-8 hover:-translate-y-2.5 transition-transform duration-500 group md:translate-y-12">
               <div className="w-20 h-20 rounded-full bg-white/60 flex items-center justify-center text-rose-600 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:scale-110 transition-transform duration-500">
-                <MessageCircle className="w-8 h-8" />
+                <MSIcon name="psychology_alt" className="text-[32px]" />
               </div>
               <div>
                 <h3 className="font-display text-[32px] text-rose-900 mb-4 italic tracking-wide">Rehearsal Mode</h3>
                 <p className="font-sans text-[16px] text-rose-700/80 leading-loose font-light">
-                  Practice articulating your concerns before appointments. Guided prompts help you build confidence in expressing exactly what you're experiencing.
+                  Practice articulating your concerns before appointments. Guided prompts help you build confidence
+                  in expressing exactly what you're experiencing.
                 </p>
               </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-2xl border border-rose-500/30 rounded-[2.5rem] p-12 flex flex-col items-center text-center gap-8 hover:-translate-y-2.5 transition-transform duration-500 group">
-              <div className="w-20 h-20 rounded-full bg-white/60 flex items-center justify-center text-plum-500 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:scale-110 transition-transform duration-500">
-                <Lock className="w-8 h-8" />
+            {/* Card 3 – Private Logging */}
+            <div className="fade-up-4 bg-white/60 backdrop-blur-2xl border border-rose-500/30 rounded-[2.5rem] p-12 flex flex-col items-center text-center gap-8 hover:-translate-y-2.5 transition-transform duration-500 group">
+              <div className="w-20 h-20 rounded-full bg-white/60 flex items-center justify-center text-plum-600 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:scale-110 transition-transform duration-500">
+                <MSIcon name="lock_person" className="text-[32px]" />
               </div>
               <div>
                 <h3 className="font-display text-[32px] text-rose-900 mb-4 italic tracking-wide">Private Logging</h3>
                 <p className="font-sans text-[16px] text-rose-700/80 leading-loose font-light">
-                  Your data remains yours. Secure, deeply personal journaling fields that feel like writing on high-end stationery, shielded from prying eyes.
+                  Your data remains yours. Secure, deeply personal journaling fields that feel like writing on
+                  high-end stationery, shielded from prying eyes.
                 </p>
               </div>
             </div>
@@ -310,17 +368,25 @@ export function LandingPage({ onStart, onViewSample }: LandingPageProps) {
         </section>
       </main>
 
+      {/* ── Footer ── */}
       <footer className="w-full py-20 px-6 flex flex-col items-center gap-8 text-center bg-transparent border-t border-white/30 backdrop-blur-sm relative z-10">
         <div className="font-display text-[40px] text-rose-900 mb-2 opacity-80 tracking-wide">
           HerWellness
         </div>
         <div className="flex gap-10 mb-4">
-          <a className="text-[11px] text-rose-600/60 hover:text-rose-900 transition-colors tracking-[0.2em] uppercase font-semibold" href="#">Privacy</a>
-          <a className="text-[11px] text-rose-600/60 hover:text-rose-900 transition-colors tracking-[0.2em] uppercase font-semibold" href="#">Terms</a>
-          <a className="text-[11px] text-rose-600/60 hover:text-rose-900 transition-colors tracking-[0.2em] uppercase font-semibold" href="#">Trust</a>
+          {['Privacy', 'Terms', 'Trust'].map((link) => (
+            <a
+              key={link}
+              href="#"
+              className="text-[11px] text-rose-600/60 hover:text-rose-900 transition-colors tracking-[0.2em] uppercase font-semibold"
+            >
+              {link}
+            </a>
+          ))}
         </div>
         <p className="font-sans text-[12px] text-rose-600/50 max-w-md tracking-wide font-light leading-relaxed">
-          &copy; 2026 HerWellness. Clinical disclaimer: For informational purposes only. Not intended to diagnose or treat medical conditions.
+          &copy; 2026 HerWellness. Clinical disclaimer: For informational purposes only.
+          Not intended to diagnose or treat medical conditions.
         </p>
       </footer>
     </div>
