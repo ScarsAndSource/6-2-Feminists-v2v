@@ -1,9 +1,16 @@
 import type { ComputedStats, Entry } from './types';
 
+export function getGroqApiKey(): string | null {
+  const key = import.meta.env.VITE_GROQ_API_KEY;
+  return key && key.startsWith('gsk_') ? key : null;
+}
+
 /**
- * Call Groq API directly from the client/browser using the user's provided API key.
+ * Call Groq API directly from the client/browser using the env-provided API key.
  */
-export async function callGroqDirectly(stats: ComputedStats, apiKey: string): Promise<string> {
+export async function callGroqDirectly(stats: ComputedStats): Promise<string> {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) throw new Error('No Groq API key configured. Set VITE_GROQ_API_KEY in .env.local.');
   const prompt = `You are a clinical documentation assistant. You will be given a JSON object called computed_stats -- statistical aggregates from a patient's self-reported symptom log. Your only task is to write a short, factual narrative summary of these statistics for the patient to bring to a doctor's appointment.
 
 Rules:
@@ -58,7 +65,9 @@ ${JSON.stringify(stats, null, 2)}`;
 /**
  * Generate predictions, home remedies/approaches, and doctor visit guidance.
  */
-export async function generateAIPredictions(entries: Entry[], apiKey: string): Promise<string> {
+export async function generateAIPredictions(entries: Entry[]): Promise<string> {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) throw new Error('No Groq API key configured. Set VITE_GROQ_API_KEY in .env.local.');
   const prompt = `You are a supportive, high-credibility health tracking assistant. You will be given a list of detailed symptom entries logged by the user over time. Your task is to analyze these entries and provide three clear sections of advice:
 
 1. **Symptom Patterns & Predictions**: Identify any patterns in time, frequency, severity, or cycle day (if cycle_day is provided). Anticipate or predict when or how these symptoms might recur.

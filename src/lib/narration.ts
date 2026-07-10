@@ -1,6 +1,7 @@
 import type { ComputedStats } from './types';
 import { deterministicNarrative } from './aggregation';
 import { supabase } from './supabase';
+import { getGroqApiKey } from './groq';
 
 interface NarrationResult {
   text: string;
@@ -45,17 +46,17 @@ export async function generateNarrative(stats: ComputedStats): Promise<Narration
     return { text: deterministicNarrative(stats), provider: 'template' };
   }
 
-  // If the user has supplied their own Groq API key, use it directly!
-  try {
-    const localApiKey = localStorage.getItem('undismissed:groq_api_key');
-    if (localApiKey) {
+  // If the user has configured a Groq API key via .env.local, use it directly!
+  const apiKey = getGroqApiKey();
+  if (apiKey) {
+    try {
       const { callGroqDirectly } = await import('./groq');
-      const text = await callGroqDirectly(stats, localApiKey);
-      console.log('[narration] Generated narrative locally using manual Groq API Key');
+      const text = await callGroqDirectly(stats);
+      console.log('[narration] Generated narrative locally using VITE_GROQ_API_KEY');
       return { text, provider: 'groq' };
+    } catch (err) {
+      console.warn('[narration] Direct Groq API call failed, falling back to edge function', err);
     }
-  } catch (err) {
-    console.warn('[narration] Direct Groq API call failed, falling back to edge function', err);
   }
 
   try {

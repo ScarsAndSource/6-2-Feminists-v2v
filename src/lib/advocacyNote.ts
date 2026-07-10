@@ -1,4 +1,5 @@
 import type { AdvocacyStatsContext, AdvocacyFollowupContext } from './advocacyContext';
+import { getGroqApiKey } from './groq';
 
 export interface AdvocacyNoteResult {
   text: string;
@@ -105,10 +106,10 @@ export async function generateAdvocacyNote(
   stats: AdvocacyStatsContext,
   followup: AdvocacyFollowupContext
 ): Promise<AdvocacyNoteResult> {
-  const localApiKey = localStorage.getItem('undismissed:groq_api_key');
-  if (localApiKey) {
+  const apiKey = getGroqApiKey();
+  if (apiKey) {
     try {
-      const text = await callGroqDirectly(stats, followup, localApiKey);
+      const text = await callGroqDirectly(stats, followup, apiKey);
       return { text, provider: 'groq' };
     } catch (err) {
       console.warn('[advocacyNote] Direct Groq call failed, using template:', err);

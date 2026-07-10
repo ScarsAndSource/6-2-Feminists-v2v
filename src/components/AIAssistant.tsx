@@ -2,15 +2,10 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, Lightbulb, AlertTriangle, RefreshCw, KeyRound } from 'lucide-react';
 import type { Entry } from '../lib/types';
-import { generateAIPredictions } from '../lib/groq';
+import { generateAIPredictions, getGroqApiKey } from '../lib/groq';
 
 interface AIAssistantProps {
   entries: Entry[];
-}
-
-function hasGroqKey(): boolean {
-  const key = localStorage.getItem('undismissed:groq_api_key');
-  return !!key && key.startsWith('gsk_');
 }
 
 export function AIAssistant({ entries }: AIAssistantProps) {
@@ -18,7 +13,7 @@ export function AIAssistant({ entries }: AIAssistantProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const keyConfigured = hasGroqKey();
+  const keyConfigured = !!getGroqApiKey();
 
   const handleGenerate = async () => {
     if (loading || entries.length === 0) return;
@@ -27,8 +22,7 @@ export function AIAssistant({ entries }: AIAssistantProps) {
     setResult(null);
 
     try {
-      const apiKey = localStorage.getItem('undismissed:groq_api_key')!;
-      const text = await generateAIPredictions(entries, apiKey);
+      const text = await generateAIPredictions(entries);
       setResult(text);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed. Check your API key.');
@@ -47,7 +41,7 @@ export function AIAssistant({ entries }: AIAssistantProps) {
           <div className="flex-1 min-w-0">
             <h3 className="font-display text-base font-semibold text-rose-800 mb-1">AI Assistant</h3>
             <p className="text-sm text-rose-500 leading-relaxed">
-              Add a Groq API key in Settings to unlock symptom predictions, self-care suggestions, and guidance on when to see a doctor.
+              Set a Groq API key in your <code>.env.local</code> file to unlock symptom predictions, self-care suggestions, and guidance on when to see a doctor.
             </p>
           </div>
         </div>

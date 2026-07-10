@@ -1,4 +1,5 @@
 import type { AdvocacyChatMessage } from './advocacyContext';
+import { getGroqApiKey } from './groq';
 
 const CLIENT_TIMEOUT_MS = 15000;
 
@@ -69,10 +70,10 @@ async function callGroqDirectly(
 export async function sendAdvocacyChatTurn(
   history: AdvocacyChatMessage[]
 ): Promise<{ reply: string; provider: string }> {
-  const localApiKey = localStorage.getItem('undismissed:groq_api_key');
-  if (localApiKey) {
+  const apiKey = getGroqApiKey();
+  if (apiKey) {
     try {
-      const reply = await callGroqDirectly(history, localApiKey);
+      const reply = await callGroqDirectly(history, apiKey);
       return { reply, provider: 'groq' };
     } catch (err) {
       console.warn('[advocacyChat] Direct Groq call failed, no fallback available:', err);
@@ -80,5 +81,5 @@ export async function sendAdvocacyChatTurn(
     }
   }
 
-  throw new Error('No Groq API key configured. Add one in Settings to use the advocacy coach.');
+  throw new Error('No Groq API key configured. Set VITE_GROQ_API_KEY in .env.local to use the advocacy coach.');
 }

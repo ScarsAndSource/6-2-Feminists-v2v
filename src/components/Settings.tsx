@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Shield, Lock, Eye, Feather, Download,
-  Moon, Info, KeyRound,
+  Moon, Info, KeyRound, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { getAvgCycleLength, setAvgCycleLength } from '../lib/localFlags';
+import { getGroqApiKey } from '../lib/groq';
 import type { PatternReport } from '../lib/types';
 
 interface SettingsProps {
@@ -21,15 +22,7 @@ export function Settings({ open, onClose, reports, reportsLoading, onShowLanding
     return saved != null ? String(saved) : '';
   });
 
-  const [groqApiKey, setGroqApiKey] = useState<string>(() => {
-    return localStorage.getItem('undismissed:groq_api_key') || '';
-  });
-  const [showApiKey, setShowApiKey] = useState<boolean>(false);
-
-  const handleApiKeyChange = (val: string) => {
-    setGroqApiKey(val);
-    localStorage.setItem('undismissed:groq_api_key', val.trim());
-  };
+  const groqConfigured = !!getGroqApiKey();
 
   const handleCycleSave = (val: string) => {
     setCycleDays(val);
@@ -162,23 +155,20 @@ export function Settings({ open, onClose, reports, reportsLoading, onShowLanding
                     </h3>
                   </div>
                   <p className="text-sm text-rose-500 mb-3 leading-relaxed">
-                    Add a Groq API key to unlock symptom forecasting, natural remedy advice, and local clinical narrative summaries.
+                    Key loaded from <code className="text-rose-600 text-xs bg-rose-100/60 px-1.5 py-0.5 rounded">VITE_GROQ_API_KEY</code> in <code className="text-rose-600 text-xs bg-rose-100/60 px-1.5 py-0.5 rounded">.env.local</code>. Restart the dev server after changing it.
                   </p>
-                  <div className="relative flex items-center">
-                    <input
-                      type={showApiKey ? 'text' : 'password'}
-                      placeholder="gsk_..."
-                      value={groqApiKey}
-                      onChange={(e) => handleApiKeyChange(e.target.value)}
-                      className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-rose-200 bg-white/70 text-rose-800 font-medium text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200 transition-all placeholder:text-rose-350"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 text-rose-400 hover:text-rose-600 transition-colors"
-                    >
-                      <Eye className="w-4.5 h-4.5" />
-                    </button>
+                  <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border text-sm font-medium">
+                    {groqConfigured ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        <span className="text-green-700">API key configured</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-5 h-5 text-rose-400" />
+                        <span className="text-rose-500">No API key set</span>
+                      </>
+                    )}
                   </div>
                   <div className="mt-2.5">
                     <a
