@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { storageGet, storageSet, onStorageChange } from '../lib/storage';
-import { getAvgCycleLength } from '../lib/localFlags';
+import { getAvgCycleLength, getManualCycleDay } from '../lib/localFlags';
 import { todayKey, daysBetweenKeys, addDaysToKey } from '../lib/dateUtils';
 import type { PeriodLog } from '../lib/types';
 
@@ -55,6 +55,8 @@ export function usePeriodLog() {
   }, [persist]);
 
   const currentCycleDay = useCallback((): number | null => {
+    const manual = getManualCycleDay();
+    if (manual) return manual;
     if (logs.length === 0) return null;
     const daysSince = daysBetweenKeys(logs[0].start_date, todayKey()) + 1;
     const userCycle = getAvgCycleLength();

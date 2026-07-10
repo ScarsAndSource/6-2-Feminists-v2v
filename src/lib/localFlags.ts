@@ -45,6 +45,26 @@ export function setAvgCycleLength(days: number | null): void {
   }
 }
 
+export function getManualCycleDay(): number | null {
+  try {
+    const raw = localStorage.getItem(`${PREFIX}:manual_cycle_day`);
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setManualCycleDay(day: number | null): void {
+  try {
+    if (day == null) localStorage.removeItem(`${PREFIX}:manual_cycle_day`);
+    else localStorage.setItem(`${PREFIX}:manual_cycle_day`, String(Math.round(day)));
+  } catch {
+    // ignore
+  }
+}
+
 export function hasCelebrated(key: 'first_log' | 'first_casefile'): boolean {
   return readBool(`celebrated_${key}`);
 }

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Icon } from './Icon';
 import { usePeriodLog } from '../hooks/usePeriodLog';
 import { toDateKey, todayKey, dateKeyFromTimestamp, formatDateLabel, daysBetweenKeys } from '../lib/dateUtils';
+import { getAvgCycleLength, setAvgCycleLength, getManualCycleDay, setManualCycleDay } from '../lib/localFlags';
 import type { Entry } from '../lib/types';
 
 interface CycleCalendarProps {
@@ -16,6 +17,9 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
   const [showPastForm, setShowPastForm] = useState(false);
   const [pastStart, setPastStart] = useState('');
   const [pastEnd, setPastEnd] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [cycleLengthInput, setCycleLengthInput] = useState(() => { const v = getAvgCycleLength(); return v ? String(v) : ''; });
+  const [cycleDayInput, setCycleDayInput] = useState(() => { const v = getManualCycleDay(); return v ? String(v) : ''; });
 
   const periodDaySet = useMemo(() => {
     const set = new Set<string>();
@@ -90,6 +94,37 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
     setPastEnd('');
     setShowPastForm(false);
     setSelectedDay(null);
+  };
+
+  const handleCycleLengthChange = (val: string) => {
+    setCycleLengthInput(val);
+    const n = parseInt(val, 10);
+    if (val === '') {
+      setAvgCycleLength(null);
+    } else if (!isNaN(n) && n >= 15 && n <= 60) {
+      setAvgCycleLength(n);
+    }
+  };
+
+  const handleCycleDayChange = (val: string) => {
+    setCycleDayInput(val);
+    const n = parseInt(val, 10);
+    if (val === '') {
+      setManualCycleDay(null);
+    } else if (!isNaN(n) && n >= 1 && n <= 60) {
+      setManualCycleDay(n);
+    }
+  };
+
+  const clearSelections = () => {
+    setSelectedDay(null);
+    setEditingPeriod(null);
+    setEditStart('');
+    setEditEnd('');
+    setShowPastForm(false);
+    setPastStart('');
+    setPastEnd('');
+    setShowSettings(false);
   };
 
   return (
@@ -284,6 +319,40 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {!compact && (
+        <div className="mt-4 pt-3 border-t border-rose-200/30">
+          <button onClick={() => setShowSettings(!showSettings)} className="text-xs font-sans font-medium text-rose-500 hover:text-rose-700 flex items-center gap-1.5">
+            <Icon name="tune" size={14} /> Cycle settings
+          </button>
+          {showSettings && (
+            <div className="mt-3 space-y-3 animate-fade-in">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-sans text-rose-500">Avg cycle length:</label>
+                  <input type="number" min={15} max={60} placeholder="28" value={cycleLengthInput} onChange={e => handleCycleLengthChange(e.target.value)} className="w-16 px-2 py-1 rounded-lg border border-rose-200 bg-white text-sm text-rose-800 text-center" />
+                  <span className="text-xs text-rose-400">days</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-sans text-rose-500">Set today as cycle day:</label>
+                  <input type="number" min={1} max={60} placeholder="--" value={cycleDayInput} onChange={e => handleCycleDayChange(e.target.value)} className="w-16 px-2 py-1 rounded-lg border border-rose-200 bg-white text-sm text-rose-800 text-center" />
+                </div>
+              </div>
+              <p className="text-[11px] font-sans text-rose-400 leading-relaxed">
+                Setting a cycle day overrides auto-computation. Clear the field to go back to automatic. Cycle length is used for predictions.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!compact && (
+        <div className="mt-3 flex justify-end">
+          <button onClick={clearSelections} className="text-xs font-sans font-medium text-rose-400 hover:text-rose-600 flex items-center gap-1">
+            <Icon name="close" size={14} /> Clear selections
+          </button>
         </div>
       )}
     </div>
