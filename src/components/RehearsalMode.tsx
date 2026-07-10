@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Heart } from 'lucide-react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Heart, Mic, MicOff, X } from 'lucide-react';
 import type { ComputedStats } from '../lib/types';
 import { getTagLabel } from '../lib/tagLabels';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
@@ -14,6 +15,67 @@ interface RehearsalModeProps {
 }
 
 export function RehearsalMode({ stats }: RehearsalModeProps) {
+  const [isListening, setIsListening] = useState(false);
+  const [listeningIndex, setListeningIndex] = useState<number | null>(null);
+  const [spokenAnswers, setSpokenAnswers] = useState<Record<number, string>>({});
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const speechSupported = useMemo(() => {
+    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    return !!Ctor;
+  }, []);
+
+  const handleVoiceToggle = useCallback((index: number) => {
+    if (isListening && listeningIndex === index) {
+      recognitionRef.current?.abort();
+      setIsListening(false);
+      setListeningIndex(null);
+      return;
+    }
+
+    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Ctor) return;
+
+    const recognition = new Ctor();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+
+    setIsListening(true);
+    setListeningIndex(index);
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      setSpokenAnswers(prev => ({ ...prev, [index]: transcript }));
+      setIsListening(false);
+      setListeningIndex(null);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setListeningIndex(null);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setListeningIndex(null);
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      setIsListening(false);
+      setListeningIndex(null);
+    }
+  }, [isListening, listeningIndex]);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort();
+    };
+  }, []);
+
   if (!stats || stats.entry_count < 3) {
     return (
       <div className="text-center py-12 px-6">
@@ -71,6 +133,37 @@ export function RehearsalMode({ stats }: RehearsalModeProps) {
                     <Lightbulb className="w-3.5 h-3.5 text-amber-500/70 twinkle" />
                     <span className="italic">{q.context}</span>
                   </div>
+                  {spokenAnswers[i] && (
+                    <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-xl text-sm text-teal-800 relative">
+                      <div className="flex items-start gap-2">
+                        <span className="flex-1">{spokenAnswers[i]}</span>
+                        <button
+                          onClick={() => setSpokenAnswers(prev => { const n = { ...prev }; delete n[i]; return n; })}
+                          className="text-teal-400 hover:text-teal-600 shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {speechSupported && (
+                    <button
+                      onClick={() => handleVoiceToggle(i)}
+                      className={`mt-2 flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all ${
+                        isListening && listeningIndex === i
+                          ? 'bg-coral-500/20 text-coral-600 border border-coral-500/30 voice-pulse'
+                          : spokenAnswers[i]
+                            ? 'bg-teal-100 text-teal-600 hover:bg-teal-200'
+                            : 'bg-rose-50 text-rose-400 hover:bg-rose-100 hover:text-rose-600'
+                      }`}
+                    >
+                      {isListening && listeningIndex === i ? (
+                        <><MicOff className="w-3.5 h-3.5" /> Stop</>
+                      ) : (
+                        <><Mic className="w-3.5 h-3.5" /> {spokenAnswers[i] ? 'Re-record' : 'Practice aloud'}</>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

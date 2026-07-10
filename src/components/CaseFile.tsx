@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   FileText,
   Printer,
@@ -10,7 +10,10 @@ import {
   Clock,
   ChevronRight,
   Sparkles,
-  Info
+  Info,
+  ArrowUp,
+  Minus,
+  CheckCircle2
 } from 'lucide-react';
 import type { ComputedStats, PatternReport, Entry } from '../lib/types';
 import { getTagLabel } from '../lib/tagLabels';
@@ -51,6 +54,31 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
   const [provider, setProvider] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [patternReportId, setPatternReportId] = useState<string | null>(null);
+  const prevStatsRef = useRef<ComputedStats | null>(null);
+
+  const delta = useMemo(() => {
+    if (!prevStatsRef.current || !stats) return null;
+    const prev = prevStatsRef.current;
+    const curr = stats;
+
+    const prevTagSet = new Set(prev.tag_frequency.filter(t => t.tag !== 'other').map(t => t.tag));
+    const currTagSet = new Set(curr.tag_frequency.filter(t => t.tag !== 'other').map(t => t.tag));
+
+    const newTags = curr.tag_frequency
+      .filter(t => t.tag !== 'other' && !prevTagSet.has(t.tag))
+      .map(t => t.tag);
+
+    const resolvedTags = prev.tag_frequency
+      .filter(t => t.tag !== 'other' && !currTagSet.has(t.tag))
+      .map(t => t.tag);
+
+    const persistedTags = curr.tag_frequency
+      .filter(t => t.tag !== 'other' && prevTagSet.has(t.tag))
+      .slice(0, 2)
+      .map(t => t.tag);
+
+    return { newTags, resolvedTags, persistedTags };
+  }, [stats]);
 
   useEffect(() => {
     if (loading) {
@@ -70,6 +98,7 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
 
     try {
       const computed = computeStats(entries);
+      if (stats) prevStatsRef.current = stats;
       setStats(computed);
 
       if (computed.entry_count === 0) {
@@ -196,6 +225,35 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
               </button>
             </div>
           </div>
+
+          {delta && (delta.newTags.length > 0 || delta.resolvedTags.length > 0) && (
+            <div className="bg-white/80 border border-teal-200/50 rounded-xl px-5 py-4 text-sm animate-fade-in">
+              <div className="flex items-center gap-2 text-teal-700 font-semibold mb-2">
+                <Sparkles className="w-4 h-4" />
+                Since your last Case File
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-slate-600">
+                {delta.newTags.length > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <ArrowUp className="w-3.5 h-3.5 text-teal-500" />
+                    New: {delta.newTags.map(getTagLabel).join(', ')}
+                  </span>
+                )}
+                {delta.resolvedTags.length > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    Resolved: {delta.resolvedTags.map(getTagLabel).join(', ')}
+                  </span>
+                )}
+                {delta.persistedTags.length > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Minus className="w-3.5 h-3.5 text-amber-500" />
+                    Persisted: {delta.persistedTags.map(getTagLabel).join(', ')}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="bg-white text-slate-900 rounded-2xl shadow-soft doc-shadow print:shadow-none print:rounded-none overflow-hidden">
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-8 py-6">

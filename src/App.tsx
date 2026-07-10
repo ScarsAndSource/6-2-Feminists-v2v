@@ -33,6 +33,7 @@ import { RehearsalMode } from './components/RehearsalMode';
 import { CycleAmbientBackground } from './components/CycleAmbientBackground';
 import { BotanicalLayer } from './components/BotanicalLayer';
 import { ParticleField } from './components/ParticleField';
+import { CycleConstellation } from './components/CycleConstellation';
 import { TextReveal } from './components/TextReveal';
 import { getCyclePhase, themeForPhase } from './lib/cyclePhase';
 import { computeStats } from './lib/aggregation';
@@ -54,6 +55,8 @@ function AppContent() {
   const hasAutoNavigated = useRef(false);
   const [focusMode, setFocusMode] = useState(false);
   const [optimisticEntries, setOptimisticEntries] = useState<Entry[]>([]);
+  const entrySubmitCount = useRef(0);
+  const [showNudge, setShowNudge] = useState(false);
 
   const activeEntries = demoMode ? demo.entries : entries;
   const stats = useMemo(() => computeStats(activeEntries), [activeEntries]);
@@ -76,6 +79,16 @@ function AppContent() {
     return freq;
   }, [activeEntries]);
 
+  const previousOtherNotes = useMemo(() => {
+    const notes: string[] = [];
+    for (const e of activeEntries) {
+      for (const t of e.tags) {
+        if (t.tag === 'other' && t.note) notes.push(t.note);
+      }
+    }
+    return notes;
+  }, [activeEntries]);
+
   const mostRecentCycleDay = activeEntries.length
     ? [...activeEntries].sort((a, b) => b.created_at.localeCompare(a.created_at))[0].cycle_day
     : null;
@@ -95,6 +108,10 @@ function AppContent() {
   };
 
   const handleAddEntry = async (tags: TagEntry[], cycleDay?: number) => {
+    entrySubmitCount.current += 1;
+    if (entrySubmitCount.current > 0 && entrySubmitCount.current % 5 === 0) {
+      setShowNudge(true);
+    }
     const optimisticId = `opt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const optimisticEntry: Entry = {
       id: optimisticId,
@@ -227,6 +244,26 @@ function AppContent() {
             <div className="lg:col-span-3">
               <TagPromotionSuggestion entries={activeEntries} />
               <AppointmentPrompt />
+              {showNudge && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-teal-500/10 border border-teal-500/20 rounded-xl text-sm animate-fade-in">
+                  <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
+                  <span className="text-teal-300 flex-1">
+                    {entries.length} entries logged — your Case File just got richer
+                  </span>
+                  <button
+                    onClick={() => setActiveTab('casefile')}
+                    className="text-teal-400 hover:text-teal-200 font-semibold transition-colors shrink-0"
+                  >
+                    View
+                  </button>
+                  <button
+                    onClick={() => setShowNudge(false)}
+                    className="text-slate-500 hover:text-white transition-colors shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
               <div className="gradient-border-animated">
                 <div className="p-6 sm:p-8">
                   <div className="flex items-start justify-between mb-6">
@@ -238,9 +275,12 @@ function AppContent() {
                         Select symptoms, adjust severity, and log your experience
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-4xl font-bold font-display gradient-text number-transition">{entries.length}</div>
-                      <div className="text-sm text-slate-500 uppercase tracking-wide font-medium">entries</div>
+                    <div className="flex items-center gap-3">
+                      <CycleConstellation entries={activeEntries} size={64} />
+                      <div className="text-right">
+                        <div className="text-4xl font-bold font-display gradient-text number-transition">{entries.length}</div>
+                        <div className="text-sm text-slate-500 uppercase tracking-wide font-medium">entries</div>
+                      </div>
                     </div>
                   </div>
                   <SymptomLogger
@@ -251,6 +291,7 @@ function AppContent() {
                     onFocusChange={setFocusMode}
                     lastEntry={lastEntry}
                     tagFrequency={tagFrequency}
+                    previousOtherNotes={previousOtherNotes}
                   />
                 </div>
               </div>

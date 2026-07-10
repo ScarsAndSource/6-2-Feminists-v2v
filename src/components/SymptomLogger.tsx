@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, ChevronRight, Sparkles, Undo2, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, ChevronRight, Sparkles, Undo2, AlertCircle, History } from 'lucide-react';
 import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry, type CustomTag } from '../lib/types';
 import type { Entry } from '../lib/types';
 import { getTagLabel, slugifyCustomTag } from '../lib/tagLabels';
@@ -13,6 +13,7 @@ interface SymptomLoggerProps {
   onFocusChange?: (focused: boolean) => void;
   lastEntry?: Entry | null;
   tagFrequency?: Record<string, number>;
+  previousOtherNotes?: string[];
 }
 
 const SYMPTOM_CATEGORIES = {
@@ -54,7 +55,7 @@ function describeVoiceError(code: string): string {
   }
 }
 
-export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocusChange, lastEntry, tagFrequency }: SymptomLoggerProps) {
+export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocusChange, lastEntry, tagFrequency, previousOtherNotes }: SymptomLoggerProps) {
   const [selectedTags, setSelectedTags] = useState<Map<string, TagEntry>>(new Map());
   const [cycleDay, setCycleDay] = useState<number | ''>('');
   const [otherText, setOtherText] = useState('');
@@ -272,6 +273,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
                   disabled={disabled}
                   otherText={tag === 'other' ? otherText : undefined}
                   onOtherTextChange={tag === 'other' ? handleOtherTextChange : undefined}
+                  previousOtherNotes={tag === 'other' ? previousOtherNotes : undefined}
                 />
               ))}
             </div>
@@ -508,7 +510,8 @@ function SymptomTag({
   onSeverityChange,
   disabled,
   otherText,
-  onOtherTextChange
+  onOtherTextChange,
+  previousOtherNotes
 }: {
   tag: string;
   isSelected: boolean;
@@ -518,8 +521,45 @@ function SymptomTag({
   disabled?: boolean;
   otherText?: string;
   onOtherTextChange?: (text: string) => void;
+  previousOtherNotes?: string[];
 }) {
   const label = getTagLabel(tag);
+  const severityBarRef = useRef<HTMLDivElement>(null);
+  const [isDraggingSeverity, setIsDraggingSeverity] = useState(false);
+
+  const handleSeverityPointerDown = useCallback((e: React.PointerEvent) => {
+    const bar = severityBarRef.current;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const sev = Math.max(1, Math.min(5, Math.ceil((x / rect.width) * 5)));
+    onSeverityChange(sev);
+    setIsDraggingSeverity(true);
+    bar.setPointerCapture(e.pointerId);
+  }, [onSeverityChange]);
+
+  const handleSeverityPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDraggingSeverity) return;
+    const bar = severityBarRef.current;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const sev = Math.max(1, Math.min(5, Math.ceil((x / rect.width) * 5)));
+    onSeverityChange(sev);
+  }, [isDraggingSeverity, onSeverityChange]);
+
+  const handleSeverityPointerUp = useCallback(() => {
+    setIsDraggingSeverity(false);
+  }, []);
+
+  const matchingSuggestions = useMemo(() => {
+    if (!previousOtherNotes || !otherText || otherText.trim().length < 1) return [];
+    const lower = otherText.toLowerCase();
+    const seen = new Set<string>();
+    return previousOtherNotes
+      .filter(n => n.toLowerCase().includes(lower) && !seen.has(n) && seen.add(n))
+      .slice(0, 4);
+  }, [previousOtherNotes, otherText]);
 
   return (
     <div className="flex items-center gap-1">
@@ -536,35 +576,54 @@ function SymptomTag({
       </button>
 
       {isSelected && severity && tag !== 'other' && (
-        <div className="flex items-center bg-slate-800 rounded-xl p-1 gap-0.5 animate-scale-in">
-          {[1, 2, 3, 4, 5].map(sev => (
-            <button
-              key={sev}
-              onClick={() => onSeverityChange(sev)}
-              className={`severity-pill w-8 h-8 rounded-lg text-sm font-bold transition-all ${
-                severity === sev
-                  ? 'active bg-teal-500 text-white'
-                  : 'text-slate-500 hover:text-white hover:bg-slate-700'
-              }`}
-              title={SEVERITY_LABELS[sev]}
-            >
-              {sev}
-            </button>
-          ))}
+        <div
+          ref={severityBarRef}
+          onPointerDown={handleSeverityPointerDown}
+          onPointerMove={handleSeverityPointerMove}
+          onPointerUp={handleSeverityPointerUp}
+          onPointerLeave={handleSeverityPointerUp}
+          className="relative w-28 h-8 bg-slate-800 rounded-xl overflow-hidden cursor-pointer select-none animate-scale-in touch-none"
+        >
+          <div
+            className="absolute inset-y-0 left-0 rounded-xl transition-[width] duration-75"
+            style={{
+              width: `${(severity / 5) * 100}%`,
+              background: `linear-gradient(90deg, rgba(20,184,166,0.4) 0%, rgba(20,184,166,0.7) 100%)`,
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white pointer-events-none">
+            {severity} — {SEVERITY_LABELS[severity]}
+          </div>
         </div>
       )}
 
       {isSelected && tag === 'other' && onOtherTextChange && (
-        <input
-          type="text"
-          value={otherText || ''}
-          onChange={e => onOtherTextChange(e.target.value)}
-          placeholder="Describe..."
-          disabled={disabled}
-          className="w-32 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500 animate-scale-in"
-          autoFocus
-          maxLength={60}
-        />
+        <div className="relative">
+          <input
+            type="text"
+            value={otherText || ''}
+            onChange={e => onOtherTextChange(e.target.value)}
+            placeholder="Describe..."
+            disabled={disabled}
+            className="w-32 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500 animate-scale-in"
+            autoFocus
+            maxLength={60}
+          />
+          {matchingSuggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-xl z-20">
+              {matchingSuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => onOtherTextChange(s)}
+                  className="w-full text-left px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <History className="w-3 h-3 shrink-0 text-slate-500" />
+                  <span className="truncate">{s}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
