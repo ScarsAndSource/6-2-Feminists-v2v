@@ -67,6 +67,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
 
   const [undoEntryId, setUndoEntryId] = useState<string | null>(null);
   const [undoing, setUndoing] = useState(false);
+  const [logError, setLogError] = useState<string | null>(null);
 
   const voiceErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -140,6 +141,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
     if (selectedTags.size === 0) return;
 
     setSubmitting(true);
+    setLogError(null);
     try {
       const tags = Array.from(selectedTags.values());
       const inserted = await onSubmit(tags, cycleDay === '' ? undefined : Number(cycleDay));
@@ -155,6 +157,9 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
       setCycleDay('');
       setOtherText('');
       setShowCycleInput(false);
+    } catch (err) {
+      console.error('Submit error:', err);
+      setLogError(err instanceof Error ? err.message : 'Failed to save entry. Check database connection.');
     } finally {
       setSubmitting(false);
     }
@@ -470,6 +475,13 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
             </motion.div>
           )}
         </AnimatePresence>
+
+        {logError && (
+          <div className="flex items-center gap-2.5 p-3.5 bg-coral-500/10 border border-coral-500/25 rounded-xl text-coral-600 text-sm animate-fade-in">
+            <AlertCircle className="w-4.5 h-4.5 shrink-0 text-coral-500" />
+            <span className="leading-snug">{logError}</span>
+          </div>
+        )}
 
         <button
           onClick={handleSubmit}

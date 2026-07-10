@@ -42,10 +42,11 @@ export function useEntries() {
 
   const addEntry = useCallback(
     async (tags: TagEntry[], cycleDay?: number) => {
+      if (!user) throw new Error('User not authenticated');
       try {
         const { data, error: insertError } = await supabase
           .from('entries')
-          .insert({ tags, cycle_day: cycleDay ?? null })
+          .insert({ user_id: user.id, tags, cycle_day: cycleDay ?? null })
           .select()
           .single();
 
@@ -58,7 +59,7 @@ export function useEntries() {
         throw err;
       }
     },
-    []
+    [user]
   );
 
   const deleteEntry = useCallback(

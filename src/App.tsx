@@ -8,7 +8,6 @@ import {
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
 import { usePatternReports } from './hooks/usePatternReports';
-import { useDemoEntries } from './hooks/useDemoEntries';
 import { useCustomTags } from './hooks/useCustomTags';
 import { useUserSettings } from './hooks/useUserSettings';
 import { SymptomLogger } from './components/SymptomLogger';
@@ -44,11 +43,9 @@ function AppContent() {
   const { customTags, loading: customTagsLoading } = useCustomTags();
   const { settings: userSettings, loading: settingsLoading } = useUserSettings();
   const nextAppointmentAt = userSettings?.next_appointment_at ?? null;
-  const demo = useDemoEntries();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [showLanding, setShowLanding] = useState(false);
   const [onboarding, setOnboarding] = useState(!hasOnboarded());
-  const [demoMode, setDemoMode] = useState(false);
   const hasAutoNavigated = useRef(false);
   const [showSettings, setShowSettings] = useState(false);
   const [focusModeManual, setFocusMode] = useState(false);
@@ -58,12 +55,12 @@ function AppContent() {
   const [showNudge, setShowNudge] = useState(false);
   const [viewingReport, setViewingReport] = useState<PatternReport | null>(null);
 
-  const activeEntries = demoMode ? demo.entries : entries;
+  const activeEntries = entries;
   const stats = useMemo(() => computeStats(activeEntries), [activeEntries]);
 
   const displayEntries = useMemo(() =>
-    demoMode ? activeEntries : [...optimisticEntries, ...activeEntries],
-    [activeEntries, optimisticEntries, demoMode]
+    [...optimisticEntries, ...activeEntries],
+    [activeEntries, optimisticEntries]
   );
   const lastEntry = useMemo(() => {
     if (displayEntries.length === 0) return null;
@@ -94,18 +91,6 @@ function AppContent() {
     : null;
   const cyclePhase = getCyclePhase(mostRecentCycleDay);
   const phaseTheme = themeForPhase(cyclePhase);
-
-  const enterDemo = () => {
-    setDemoMode(true);
-    setShowLanding(false);
-    setActiveTab('casefile');
-    demo.fetchDemoEntries();
-  };
-
-  const exitDemo = () => {
-    setDemoMode(false);
-    setActiveTab('home');
-  };
 
   const handleAddEntry = async (tags: TagEntry[], cycleDay?: number) => {
     entrySubmitCount.current += 1;
@@ -144,16 +129,12 @@ function AppContent() {
     }
   }, [nextAppointmentAt]);
 
-  if ((authLoading || entriesLoading || customTagsLoading || settingsLoading) && entries.length === 0 && !demoMode) {
+  if (authLoading || entriesLoading || customTagsLoading || settingsLoading) {
     return <LoadingScreen />;
-  }
-
-  if (onboarding && !authLoading) {
-    return <OnboardingFlow onComplete={() => setOnboarding(false)} />;
   }
 
   if (onboarding) {
-    return <LoadingScreen />;
+    return <OnboardingFlow onComplete={() => setOnboarding(false)} />;
   }
 
   if (showLanding) {
@@ -163,7 +144,6 @@ function AppContent() {
         <BotanicalLayer tint={phaseTheme.accent} />
         <LandingPage
           onStart={() => setShowLanding(false)}
-          onViewSample={enterDemo}
         />
       </>
     );
@@ -213,33 +193,15 @@ function AppContent() {
               </button>
               <div className="flex items-center gap-2 opacity-70">
                 <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse-soft" />
-                <span className="text-xs text-rose-400 hidden sm:block font-medium">{demoMode ? 'Sample' : 'Synced'}</span>
+                <span className="text-xs text-rose-400 hidden sm:block font-medium">Synced</span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {demoMode && (
-        <div className="bg-rose-500/10 border-b border-rose-200/50 px-4 py-2 relative z-10">
-          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 text-sm">
-            <div className="flex items-center gap-2 text-rose-600">
-              <Sparkles className="w-4 h-4" />
-              <span>You're viewing sample data. Nothing here is saved to your account.</span>
-            </div>
-            <button
-              onClick={exitDemo}
-              className="flex items-center gap-1.5 text-rose-500 hover:text-rose-700 transition-colors shrink-0"
-            >
-              <X className="w-4 h-4" />
-              Exit sample
-            </button>
-          </div>
-        </div>
-      )}
-
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 sm:pb-6 relative z-10">
-        {activeTab === 'home' && !demoMode && (
+        {activeTab === 'home' && (
           <Home
             entries={displayEntries}
             stats={stats}
@@ -251,15 +213,15 @@ function AppContent() {
           />
         )}
 
-        {activeTab === 'timeline' && !demoMode && (
+        {activeTab === 'timeline' && (
           <Timeline entries={displayEntries} onDelete={deleteEntry} loading={entriesLoading} />
         )}
 
-        {activeTab === 'insights' && !demoMode && (
+        {activeTab === 'insights' && (
           <Insights entries={displayEntries} stats={stats} />
         )}
 
-        {activeTab === 'log' && !demoMode && (
+        {activeTab === 'log' && (
           <div className="grid lg:grid-cols-5 gap-6 animate-fade-in">
             <div className="lg:col-span-3">
               <TagPromotionSuggestion entries={activeEntries} />
@@ -328,7 +290,7 @@ function AppContent() {
             <div className="mb-6 flex items-start justify-between">
               <div>
                 <h2 className="font-display text-2xl font-semibold text-rose-800 mb-1">
-                  <TextReveal text={demoMode ? 'Sample Case File' : 'Your Case File'} delay={100} />
+                  <TextReveal text="Your Case File" delay={100} />
                 </h2>
                 <p className="text-sm text-rose-500 text-slide-left" style={{ animationDelay: '200ms', opacity: 0 }}>
                   A clinical summary ready for your next appointment
@@ -349,7 +311,7 @@ function AppContent() {
               )}
             </div>
 
-            {!demoMode && !viewingReport && (
+            {!viewingReport && (
               <div className="mb-6">
                 <CaseFileHistory
                   reports={reports}
@@ -359,26 +321,16 @@ function AppContent() {
               </div>
             )}
 
-            {demoMode && demo.loading && (
-              <div className="text-center py-16 text-rose-500 text-sm">Loading sample data...</div>
-            )}
-            {demoMode && demo.error && (
-              <div className="text-center py-16 text-red-400 text-sm">{demo.error}</div>
-            )}
-
-            {(!demoMode || demo.loaded) && (
-              <div className="print-area">
-                <ErrorBoundary fallbackLabel="Something went wrong displaying this Case File">
-                  <CaseFile 
-                    entries={activeEntries} 
-                    onGenerated={demoMode ? undefined : saveReport} 
-                    isDemo={demoMode} 
-                    initialReport={viewingReport}
-                    onClearInitial={() => setViewingReport(null)}
-                  />
-                </ErrorBoundary>
-              </div>
-            )}
+            <div className="print-area">
+              <ErrorBoundary fallbackLabel="Something went wrong displaying this Case File">
+                <CaseFile 
+                  entries={activeEntries} 
+                  onGenerated={saveReport} 
+                  initialReport={viewingReport}
+                  onClearInitial={() => setViewingReport(null)}
+                />
+              </ErrorBoundary>
+            </div>
           </div>
         )}
 
@@ -392,7 +344,7 @@ function AppContent() {
                 Rehearse explaining your symptoms with personalized questions
               </p>
             </div>
-            <RehearsalMode stats={stats} isDemo={demoMode} />
+            <RehearsalMode stats={stats} isDemo={false} />
           </div>
         )}
       </main>
@@ -447,7 +399,7 @@ function LoadingScreen() {
   );
 }
 
-function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSample: () => void }) {
+function LandingPage({ onStart }: { onStart: () => void }) {
   return (
     <div className="min-h-screen relative overflow-hidden bg-rose-50">
       <ParticleField count={22} />
@@ -515,7 +467,6 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
             We can't change how a doctor listens. We make sure what you bring them
             can't be waved off as memory, anecdote, or stress.
           </p>
-
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 fade-scale" style={{ animationDelay: '1200ms', opacity: 0 }}>
             <button
               onClick={onStart}
@@ -523,14 +474,6 @@ function LandingPage({ onStart, onViewSample }: { onStart: () => void; onViewSam
             >
               Start Tracking Now
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            <button
-              onClick={onViewSample}
-              className="group w-full sm:w-auto px-7 py-4 bg-rose-100/70 hover:bg-rose-200 text-rose-700 font-medium rounded-full transition-all border border-rose-200/60 backdrop-blur-sm flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-card"
-            >
-              <FileText className="w-5 h-5 text-rose-400 group-hover:sway" />
-              View Sample Case File
             </button>
           </div>
 
