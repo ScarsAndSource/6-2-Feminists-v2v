@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   FileText,
   Heart,
@@ -29,55 +30,36 @@ import { EntryHistory } from './components/EntryHistory';
 import { TagPromotionSuggestion } from './components/TagPromotionSuggestion';
 import { AppointmentPrompt } from './components/AppointmentPrompt';
 import { RehearsalMode } from './components/RehearsalMode';
-import { ShaderBackground } from './components/ShaderBackground';
+import { CycleAmbientBackground } from './components/CycleAmbientBackground';
+import { BotanicalLayer } from './components/BotanicalLayer';
 import { ParticleField } from './components/ParticleField';
+import { TextReveal } from './components/TextReveal';
+import { getCyclePhase, themeForPhase } from './lib/cyclePhase';
 import { computeStats } from './lib/aggregation';
 
 type TabType = 'log' | 'casefile' | 'rehearsal';
-
-function TextReveal({
-  text,
-  className = '',
-  delay = 0,
-  staggerMs = 40,
-}: {
-  text: string;
-  className?: string;
-  delay?: number;
-  staggerMs?: number;
-}) {
-  const words = text.split(' ');
-  return (
-    <span className={className}>
-      {words.map((word, i) => (
-        <span
-          key={i}
-          className="text-reveal-word"
-          style={{ animationDelay: `${delay + i * staggerMs}ms` }}
-        >
-          {word}
-          {i < words.length - 1 ? '\u00A0' : ''}
-        </span>
-      ))}
-    </span>
-  );
-}
 
 function AppContent() {
   const { loading: authLoading } = useAuth();
   const { entries, loading: entriesLoading, addEntry, deleteEntry } = useEntries();
   const { saveReport } = usePatternReports();
-  const { customTags, addCustomTag, loading: customTagsLoading } = useCustomTags();
-  const { nextAppointmentAt, setNextAppointment, loading: settingsLoading } = useUserSettings();
+  const { customTags, loading: customTagsLoading } = useCustomTags();
+  const { settings: userSettings, loading: settingsLoading } = useUserSettings();
+  const nextAppointmentAt = userSettings?.next_appointment_at ?? null;
   const demo = useDemoEntries();
   const [activeTab, setActiveTab] = useState<TabType>('log');
   const [showLanding, setShowLanding] = useState(true);
   const [demoMode, setDemoMode] = useState(false);
   const hasAutoNavigated = useRef(false);
-  const [promoteSuggestion, setPromoteSuggestion] = useState<string | null>(null);
 
   const activeEntries = demoMode ? demo.entries : entries;
   const stats = useMemo(() => computeStats(activeEntries), [activeEntries]);
+
+  const mostRecentCycleDay = activeEntries.length
+    ? [...activeEntries].sort((a, b) => b.created_at.localeCompare(a.created_at))[0].cycle_day
+    : null;
+  const cyclePhase = getCyclePhase(mostRecentCycleDay);
+  const phaseTheme = themeForPhase(cyclePhase);
 
   const enterDemo = () => {
     setDemoMode(true);
@@ -104,11 +86,6 @@ function AppContent() {
     }
   }, [nextAppointmentAt]);
 
-  const handlePromote = async (label: string) => {
-    await addCustomTag(label);
-    setPromoteSuggestion(null);
-  };
-
   if ((authLoading || entriesLoading || customTagsLoading || settingsLoading) && entries.length === 0 && !demoMode) {
     return <LoadingScreen />;
   }
@@ -116,7 +93,8 @@ function AppContent() {
   if (showLanding) {
     return (
       <>
-        <ShaderBackground />
+        <CycleAmbientBackground phase={cyclePhase} />
+        <BotanicalLayer tint={phaseTheme.accent} />
         <LandingPage
           onStart={() => setShowLanding(false)}
           onViewSample={enterDemo}
@@ -127,7 +105,8 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col no-print relative bg-slate-950">
-      <ShaderBackground />
+      <CycleAmbientBackground phase={cyclePhase} />
+      <BotanicalLayer tint={phaseTheme.accent} />
       <ParticleField count={14} />
 
       <header className="sticky top-0 z-50 glass border-b border-teal-500/20">
@@ -205,17 +184,8 @@ function AppContent() {
         {activeTab === 'log' && !demoMode && (
           <div className="grid lg:grid-cols-5 gap-6 animate-fade-in">
             <div className="lg:col-span-3">
-              {promoteSuggestion && (
-                <TagPromotionSuggestion
-                  label={promoteSuggestion}
-                  onPromote={handlePromote}
-                  onDismiss={() => setPromoteSuggestion(null)}
-                />
-              )}
-              <AppointmentPrompt
-                nextAppointmentAt={nextAppointmentAt}
-                onSet={setNextAppointment}
-              />
+              <TagPromotionSuggestion entries={activeEntries} />
+              <AppointmentPrompt />
               <div className="gradient-border-animated">
                 <div className="p-6 sm:p-8">
                   <div className="flex items-start justify-between mb-6">
@@ -237,7 +207,6 @@ function AppContent() {
                     onDelete={deleteEntry}
                     disabled={entriesLoading}
                     customTags={customTags}
-                    onPromoteSuggestion={setPromoteSuggestion}
                   />
                 </div>
               </div>
@@ -328,7 +297,8 @@ function AppContent() {
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-slate-950">
-      <ShaderBackground />
+      <CycleAmbientBackground phase={null} />
+      <BotanicalLayer tint="#e8679b" />
       <div className="text-center relative z-10">
         <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-glow animate-pulse-soft">
           <Heart className="w-10 h-10 text-white heartbeat" fill="white" />
@@ -547,19 +517,27 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
-        active
-          ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-glow-soft scale-105'
-          : 'text-slate-400 hover:text-white hover:bg-slate-700/40'
+      className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-300 z-10 ${
+        active ? 'text-white' : 'text-slate-400 hover:text-white'
       }`}
     >
+      {active && (
+        <motion.div
+          layoutId="activeTabPill"
+          className="absolute inset-0 -z-10 bg-gradient-to-r from-rose-500 to-rose-600 rounded-xl shadow-glow-soft"
+          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+        />
+      )}
+      {!active && (
+        <div className="absolute inset-0 -z-10 rounded-xl hover:bg-slate-700/40 transition-colors" />
+      )}
       {icon}
       <span className="hidden sm:inline">{children}</span>
       {badge !== undefined && (
         <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold transition-all ${
           active
-            ? 'bg-white text-teal-600'
-            : 'bg-teal-500 text-white'
+            ? 'bg-white text-rose-600'
+            : 'bg-rose-500 text-white'
         }`}>
           {badge}
         </span>

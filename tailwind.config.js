@@ -46,8 +46,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Nunito"', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['"Fraunces"', 'Georgia', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['"Instrument Serif"', 'Georgia', 'serif'],
+        script: ['"Reenie Beanie"', 'cursive'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',

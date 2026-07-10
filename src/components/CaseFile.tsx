@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   FileText,
   Printer,
-  Loader2,
   AlertCircle,
   Calendar,
   TrendingUp,
@@ -18,6 +17,8 @@ import { getTagLabel } from '../lib/tagLabels';
 import { computeStats } from '../lib/aggregation';
 import { generateNarrative } from '../lib/narration';
 import { FollowupLedger } from './FollowupLedger';
+import { PetalLoader } from './PetalLoader';
+import { TextReveal } from './TextReveal';
 
 const LOADING_MESSAGES = [
   'Computing patterns...',
@@ -170,13 +171,7 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
       )}
 
       {loading && (
-        <div className="text-center py-16 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-500/10 border border-teal-500/20 mb-4">
-            <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
-          </div>
-          <p className="text-lg font-medium text-white mb-1">{LOADING_MESSAGES[loadingMessage]}</p>
-          <p className="text-sm text-slate-500">This may take a few seconds</p>
-        </div>
+        <PetalLoader messageIndex={loadingMessage} message={LOADING_MESSAGES[loadingMessage]} />
       )}
 
       {stats && narrative && !loading && (
@@ -238,11 +233,21 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
 
             <div className="px-8 py-8">
               <div className="prose prose-slate max-w-none">
-                {narrative.split('\n\n').map((para, i) => (
-                  <p key={i} className="text-base leading-relaxed text-slate-700 mb-4 last:mb-0">
-                    {para}
-                  </p>
-                ))}
+                {narrative.split('\n\n').map((para, i) =>
+                  i === 0 ? (
+                    <p key={i} className="text-base leading-relaxed text-slate-700 mb-4">
+                      <TextReveal text={para} staggerMs={18} />
+                    </p>
+                  ) : (
+                    <p
+                      key={i}
+                      className="text-base leading-relaxed text-slate-700 mb-4 last:mb-0 rise-fade"
+                      style={{ animationDelay: `${600 + i * 100}ms`, opacity: 0 }}
+                    >
+                      {para}
+                    </p>
+                  )
+                )}
               </div>
             </div>
 

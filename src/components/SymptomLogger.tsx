@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Undo2, AlertCircle } from 'lucide-react';
 import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry, type CustomTag } from '../lib/types';
 import type { Entry } from '../lib/types';
@@ -343,35 +344,69 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled }: Symp
       )}
 
       <div className="space-y-4">
-        {selectedArray.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-3 bg-slate-800/30 rounded-xl border border-slate-700/30">
-            {selectedArray.map(entry => (
-              <div key={entry.tag} className="flex items-center gap-1.5 bg-slate-900 rounded-lg px-2 py-1 text-sm">
-                <span className="text-white">
-                  {entry.tag === 'other' ? `"${entry.note?.slice(0, 12)}..."` : getTagLabel(entry.tag)}
-                </span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 font-medium">
-                  {entry.severity}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <AnimatePresence>
+          {selectedArray.length > 0 && (
+            <motion.div
+              layout
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap gap-2 p-3 bg-slate-800/30 rounded-xl border border-slate-700/30 overflow-hidden"
+            >
+              <AnimatePresence mode="popLayout">
+                {selectedArray.map((entry) => (
+                  <motion.div
+                    key={entry.tag}
+                    layout
+                    initial={{ opacity: 0, scale: 0.6, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, filter: 'blur(2px)' }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+                    className="flex items-center gap-1.5 bg-slate-900 rounded-lg px-2 py-1 text-sm"
+                  >
+                    <span className="text-white">
+                      {entry.tag === 'other' ? `"${entry.note?.slice(0, 12)}..."` : getTagLabel(entry.tag)}
+                    </span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 font-medium">
+                      {entry.severity}
+                    </span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <button
           onClick={handleSubmit}
           disabled={disabled || submitting || selectedTags.size === 0}
-          className="w-full py-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg"
+          className="group relative w-full py-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg overflow-hidden"
         >
           {submitting ? (
             <>
+              <motion.div
+                className="absolute inset-0 bg-white/15"
+                initial={{ scale: 0, borderRadius: '999px' }}
+                animate={{ scale: 3, opacity: 0 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span>Logging...</span>
             </>
           ) : (
             <>
               <Sparkles className="w-5 h-5" />
-              <span>Log {selectedTags.size > 0 ? `${selectedTags.size} Symptom${selectedTags.size > 1 ? 's' : ''}` : 'Symptoms'}</span>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={selectedTags.size}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  Log {selectedTags.size > 0 ? `${selectedTags.size} Symptom${selectedTags.size > 1 ? 's' : ''}` : 'Symptoms'}
+                </motion.span>
+              </AnimatePresence>
             </>
           )}
         </button>

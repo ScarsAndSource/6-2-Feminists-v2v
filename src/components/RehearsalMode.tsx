@@ -1,6 +1,12 @@
+import { motion } from 'framer-motion';
 import { MessageCircle, ChevronRight, RefreshCw, Lightbulb, CheckCircle2, Heart } from 'lucide-react';
 import type { ComputedStats } from '../lib/types';
 import { getTagLabel } from '../lib/tagLabels';
+
+function cardTilt(i: number) {
+  const seeds = [-1.6, 1.2, -0.8, 1.8, -1.3];
+  return seeds[i % seeds.length];
+}
 
 interface RehearsalModeProps {
   stats: ComputedStats | null;
@@ -36,20 +42,24 @@ export function RehearsalMode({ stats }: RehearsalModeProps) {
           <MessageCircle className="w-7 h-7 text-white" />
         </div>
         <h3 className="text-lg font-display font-semibold text-rose-950 mb-1">Practice Your Appointment</h3>
+        <p className="font-script text-2xl text-rose-400 leading-none mb-2">a few notes before you go in</p>
         <p className="text-sm text-rose-500 max-w-sm mx-auto">
           These questions are based on your logged patterns. Practice answering to feel confident during your visit.
         </p>
       </div>
 
-      {/* Questions */}
-      <div className="space-y-4">
+      {/* Questions — loose index-card layout, each with its own tilt that straightens on hover */}
+      <div className="space-y-5 px-1">
         {questions.map((q, i) => (
-          <div
+          <motion.div
             key={i}
-            className="group rise-fade"
-            style={{ animationDelay: `${i * 120}ms`, opacity: 0 }}
+            initial={{ opacity: 0, y: 24, rotate: cardTilt(i) * 2.4 }}
+            animate={{ opacity: 1, y: 0, rotate: cardTilt(i) }}
+            transition={{ delay: i * 0.12, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+            whileHover={{ rotate: 0, y: -3, transition: { duration: 0.25 } }}
+            className="group origin-bottom"
           >
-            <div className="bg-white/60 border border-rose-200/50 hover:border-rose-300/60 rounded-2xl p-5 transition-all duration-300 hover:bg-white hover:shadow-soft hover:translate-x-1 shimmer-overlay">
+            <div className="bg-white/80 border border-rose-200/50 hover:border-rose-300/60 rounded-2xl p-5 transition-colors duration-300 hover:bg-white hover:shadow-card shadow-soft">
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-100 to-rose-200 border border-rose-200 flex items-center justify-center shadow-soft group-hover:scale-110 group-hover:rotate-6 transition-transform">
@@ -58,14 +68,14 @@ export function RehearsalMode({ stats }: RehearsalModeProps) {
                 </div>
                 <div className="flex-1">
                   <p className="text-rose-950 font-medium mb-2">{q.question}</p>
-                  <div className="flex items-center gap-2 text-xs text-rose-400">
+                  <div className="flex items-center gap-2 text-sm text-rose-400">
                     <Lightbulb className="w-3.5 h-3.5 text-amber-500/70 twinkle" />
                     <span className="italic">{q.context}</span>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 

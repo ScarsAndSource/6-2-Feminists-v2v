@@ -1,4 +1,5 @@
-import { Clock, Trash2, Calendar } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Clock, Trash2 } from 'lucide-react';
 import type { Entry } from '../lib/types';
 import { getTagLabel } from '../lib/tagLabels';
 
@@ -49,60 +50,64 @@ export function EntryHistory({ entries, onDelete, loading }: EntryHistoryProps) 
         </span>
       </div>
 
-      <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
-        {entries.slice(0, 8).map((entry, index) => (
-          <div
-            key={entry.id}
-            className="group bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/30 hover:border-slate-700/50 rounded-xl p-3 transition-all stagger-item"
-            style={{ animationDelay: `${index * 50}ms` }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {entry.tags.map((t, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-900 rounded-md text-xs font-medium"
-                    >
-                      {t.tag === 'other' ? (
-                        <span className="text-coral-400 italic truncate max-w-[80px]">
-                          "{t.note?.slice(0, 10)}..."
-                        </span>
-                      ) : (
-                        <>
-                          <span className="text-slate-300">{getTagLabel(t.tag)}</span>
-                          <span className="text-teal-400">{t.severity}</span>
-                        </>
-                      )}
-                    </span>
-                  ))}
-                </div>
+      <div className="relative max-h-[480px] overflow-y-auto pr-1">
+        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-rose-200 via-rose-200/60 to-transparent" />
+        <div className="space-y-3">
+          {entries.slice(0, 8).map((entry, index) => (
+            <motion.div
+              key={entry.id}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.06, duration: 0.4 }}
+              className="relative pl-9"
+            >
+              <div className="absolute left-[10px] top-4 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 ring-4 ring-rose-50" />
 
-                <div className="flex items-center gap-3 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {formatDate(entry.created_at)}
-                  </span>
-                  {entry.cycle_day && (
-                    <span className="flex items-center gap-1 text-teal-500/80">
-                      <Calendar className="w-3 h-3" />
-                      Day {entry.cycle_day}
-                    </span>
-                  )}
+              <div className="group bg-white/60 hover:bg-white border border-rose-200/50 hover:border-rose-300/60 rounded-2xl p-3.5 transition-all duration-300 hover:shadow-soft shimmer-overlay">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-sm text-rose-400 mb-2 font-medium">
+                      <Clock className="w-3.5 h-3.5" />
+                      {formatDate(entry.created_at)}
+                      {entry.cycle_day && (
+                        <span className="text-rose-500 font-semibold">· Day {entry.cycle_day}</span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {entry.tags.map((t, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-rose-50 to-blush-50 rounded-lg text-sm font-semibold border border-rose-100"
+                        >
+                          {t.tag === 'other' ? (
+                            <span className="text-blush-600 italic truncate max-w-[100px]">
+                              "{t.note?.slice(0, 10)}..."
+                            </span>
+                          ) : (
+                            <>
+                              <span className="text-rose-800">{getTagLabel(t.tag)}</span>
+                              <span className="text-rose-500 font-bold">{t.severity}</span>
+                            </>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => onDelete(entry.id)}
+                    disabled={loading}
+                    className="p-1.5 rounded-lg text-rose-300 hover:text-blush-600 hover:bg-blush-400/10 opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                    title="Delete entry"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-
-              <button
-                onClick={() => onDelete(entry.id)}
-                disabled={loading}
-                className="p-1.5 rounded-lg text-slate-600 hover:text-coral-400 hover:bg-coral-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                title="Delete entry"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {entries.length > 8 && (
