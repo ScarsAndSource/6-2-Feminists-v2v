@@ -3,6 +3,7 @@ import { FileText, ChevronRight } from 'lucide-react';
 import { TextReveal } from './TextReveal';
 import { QuickLogCard } from './QuickLogCard';
 import { StatsStrip } from './StatsStrip';
+import { EvidenceMeter } from './EvidenceMeter';
 import { InsightTeaser } from './InsightTeaser';
 import { EntryRow } from './EntryRow';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
@@ -78,6 +79,8 @@ export function Home({ entries, stats, tagFrequency, addEntry, deleteEntry, onNa
       {entries.length > 0 && (
         <>
           <StatsStrip entriesThisWeek={entriesThisWeek} streak={streak} cycleDay={cycleDay} />
+
+          <EvidenceMeter entries={entries} stats={stats} />
 
           <div className="bg-white/40 border border-rose-200/50 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">

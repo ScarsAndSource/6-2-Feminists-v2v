@@ -507,7 +507,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
       </div>
 
       {selectedTags.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-rose-50/95 backdrop-blur-md border-t border-rose-200/50 px-4 py-3 sm:py-3">
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+56px)] sm:bottom-0 left-0 right-0 z-40 bg-rose-50/95 backdrop-blur-md border-t border-rose-200/50 px-4 py-3 sm:py-3 animate-fade-in">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <span className="text-sm text-rose-500">
               <span className="font-semibold text-rose-800">{selectedTags.size}</span> selected
@@ -528,7 +528,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
       )}
 
       {undoEntryId && (
-        <div className={`fixed ${selectedTags.size > 0 ? 'bottom-20' : 'bottom-6'} left-1/2 -translate-x-1/2 z-50 toast`}>
+        <div className={`fixed ${selectedTags.size > 0 ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+128px)] sm:bottom-20' : 'bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] sm:bottom-6'} left-1/2 -translate-x-1/2 z-50 toast`}>
           <div className="flex items-center gap-3 bg-rose-100 border border-rose-200 rounded-2xl px-5 py-3 shadow-2xl">
             <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
               <Check className="w-4 h-4 text-rose-500" />

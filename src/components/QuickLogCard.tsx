@@ -107,7 +107,7 @@ export function QuickLogCard({ suggestedTags, onQuickLog, onDelete, onOpenFullLo
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+            className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] sm:bottom-6 left-1/2 -translate-x-1/2 z-50"
           >
             <div className="flex items-center gap-3 bg-rose-100 border border-rose-200 rounded-2xl px-5 py-3 shadow-2xl">
               <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
