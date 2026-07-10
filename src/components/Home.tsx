@@ -7,6 +7,7 @@ import { EvidenceMeter } from './EvidenceMeter';
 import { InsightTeaser } from './InsightTeaser';
 import { EntryRow } from './EntryRow';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { AIAssistant } from './AIAssistant';
 import { computeStreak } from '../lib/aggregation';
 import { estimateCurrentCycleDay } from '../lib/cyclePhase';
 import { getAvgCycleLength } from '../lib/localFlags';
@@ -95,6 +96,8 @@ export function Home({ entries, stats, tagFrequency, addEntry, deleteEntry, onNa
             </div>
             <InsightTeaser entries={entries} stats={stats} />
           </div>
+
+          <AIAssistant entries={entries} />
 
           <div className="bg-white/40 border border-rose-200/50 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">

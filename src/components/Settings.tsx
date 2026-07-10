@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Shield, Lock, Eye, Feather, Download,
-  Moon, Info,
+  Moon, Info, KeyRound,
 } from 'lucide-react';
 import { getAvgCycleLength, setAvgCycleLength } from '../lib/localFlags';
 import type { PatternReport } from '../lib/types';
@@ -20,6 +20,16 @@ export function Settings({ open, onClose, reports, reportsLoading, onShowLanding
     const saved = getAvgCycleLength();
     return saved != null ? String(saved) : '';
   });
+
+  const [groqApiKey, setGroqApiKey] = useState<string>(() => {
+    return localStorage.getItem('undismissed:groq_api_key') || '';
+  });
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
+
+  const handleApiKeyChange = (val: string) => {
+    setGroqApiKey(val);
+    localStorage.setItem('undismissed:groq_api_key', val.trim());
+  };
 
   const handleCycleSave = (val: string) => {
     setCycleDays(val);
@@ -136,6 +146,49 @@ export function Settings({ open, onClose, reports, reportsLoading, onShowLanding
                       className="w-24 px-4 py-2.5 rounded-xl border border-rose-200 bg-white/70 text-rose-800 font-semibold text-center text-lg outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200 transition-all placeholder:text-rose-300"
                     />
                     <span className="text-sm text-rose-400">days</span>
+                  </div>
+                </section>
+
+                <hr className="border-rose-200/40" />
+
+                {/* ─── Groq API Key ─── */}
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
+                      <KeyRound className="w-4 h-4 text-rose-500" />
+                    </div>
+                    <h3 className="font-display text-base font-semibold text-rose-800">
+                      Groq API Key
+                    </h3>
+                  </div>
+                  <p className="text-sm text-rose-500 mb-3 leading-relaxed">
+                    Add a Groq API key to unlock symptom forecasting, natural remedy advice, and local clinical narrative summaries.
+                  </p>
+                  <div className="relative flex items-center">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      placeholder="gsk_..."
+                      value={groqApiKey}
+                      onChange={(e) => handleApiKeyChange(e.target.value)}
+                      className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-rose-200 bg-white/70 text-rose-800 font-medium text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200 transition-all placeholder:text-rose-350"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 text-rose-400 hover:text-rose-600 transition-colors"
+                    >
+                      <Eye className="w-4.5 h-4.5" />
+                    </button>
+                  </div>
+                  <div className="mt-2.5">
+                    <a
+                      href="https://console.groq.com/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition-colors inline-flex items-center gap-0.5"
+                    >
+                      Get your Groq API key in Groq Console &rarr;
+                    </a>
                   </div>
                 </section>
 

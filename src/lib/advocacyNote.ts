@@ -1,4 +1,3 @@
-import { supabase } from './supabase';
 import type { AdvocacyStatsContext, AdvocacyFollowupContext } from './advocacyContext';
 
 export interface AdvocacyNoteResult {
@@ -54,29 +53,66 @@ function deterministicAdvocacyNote(stats: AdvocacyStatsContext, followup: Advoca
   return lines.join(' ');
 }
 
+function buildAdvocacyNotePrompt(stats: AdvocacyStatsContext, followup: AdvocacyFollowupContext): string {
+  return `You are a clinical advocacy writing assistant. Given a patient's symptom tracking data and their follow-up history with a doctor, write a short, persuasive note the patient can read aloud or hand to their doctor at the next appointment.
+
+Context:
+- The patient has logged ${stats.entry_count} entries from ${stats.date_range.start?.slice(0, 10) || 'unknown'} to ${stats.date_range.end?.slice(0, 10) || 'unknown'}.
+- Top symptoms: ${stats.top_tags.map(t => `${t.label} (${t.count}x)`).join(', ') || 'none tracked'}.
+- They previously raised "${followup.tag_label || 'a symptom'}" with their doctor. The outcome was: ${followup.outcome || 'not clear'}.
+
+Rules:
+1. Write 3-5 plain sentences, no markdown, second person.
+2. Reference specific numbers from their tracking data.
+3. State what they want at the next appointment.
+4. Never diagnose. Never prescribe.
+5. End with a clear ask.`;
+}
+
+async function callGroqDirectly(
+  stats: AdvocacyStatsContext,
+  followup: AdvocacyFollowupContext,
+  apiKey: string
+): Promise<string> {
+  const prompt = buildAdvocacyNotePrompt(stats, followup);
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'mixtral-8x7b-32768',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 400,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || `Groq API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Empty response from Groq API');
+  return text;
+}
+
 export async function generateAdvocacyNote(
   stats: AdvocacyStatsContext,
   followup: AdvocacyFollowupContext
 ): Promise<AdvocacyNoteResult> {
-  try {
-    const { data, error } = await withClientTimeout(
-      supabase.functions.invoke<{ note: string | null; provider: 'groq' | 'gemini' | 'template' }>(
-        'advocacy-note',
-        { body: { context: { stats, followup } } }
-      ),
-      CLIENT_TIMEOUT_MS
-    );
-
-    if (error) throw error;
-
-    if (data && data.note && data.provider !== 'template') {
-      return { text: data.note, provider: data.provider };
+  const localApiKey = localStorage.getItem('undismissed:groq_api_key');
+  if (localApiKey) {
+    try {
+      const text = await callGroqDirectly(stats, followup, localApiKey);
+      return { text, provider: 'groq' };
+    } catch (err) {
+      console.warn('[advocacyNote] Direct Groq call failed, using template:', err);
     }
-  } catch (err) {
-    console.warn(
-      '[advocacy-note] generation failed, using local template:',
-      err instanceof TimeoutError ? 'client-side timeout' : err instanceof Error ? err.message : err
-    );
   }
 
   return { text: deterministicAdvocacyNote(stats, followup), provider: 'template' };

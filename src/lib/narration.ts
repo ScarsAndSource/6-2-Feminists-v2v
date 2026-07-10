@@ -45,6 +45,19 @@ export async function generateNarrative(stats: ComputedStats): Promise<Narration
     return { text: deterministicNarrative(stats), provider: 'template' };
   }
 
+  // If the user has supplied their own Groq API key, use it directly!
+  try {
+    const localApiKey = localStorage.getItem('undismissed:groq_api_key');
+    if (localApiKey) {
+      const { callGroqDirectly } = await import('./groq');
+      const text = await callGroqDirectly(stats, localApiKey);
+      console.log('[narration] Generated narrative locally using manual Groq API Key');
+      return { text, provider: 'groq' };
+    }
+  } catch (err) {
+    console.warn('[narration] Direct Groq API call failed, falling back to edge function', err);
+  }
+
   try {
     const { data, error } = await withClientTimeout(
       supabase.functions.invoke<EdgeNarrationResponse>('generate-narrative', {
