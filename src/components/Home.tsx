@@ -20,7 +20,7 @@ interface HomeProps {
   tagFrequency: Record<string, number>;
   addEntry: (tags: TagEntry[], cycleDay?: number) => Promise<Entry | void>;
   deleteEntry: (id: string) => Promise<void>;
-  onNavigate: (tab: 'log' | 'timeline' | 'casefile') => void;
+  onNavigate: (tab: 'log' | 'timeline' | 'casefile' | 'insights') => void;
   loading?: boolean;
 }
 
@@ -79,7 +79,19 @@ export function Home({ entries, stats, tagFrequency, addEntry, deleteEntry, onNa
         <>
           <StatsStrip entriesThisWeek={entriesThisWeek} streak={streak} cycleDay={cycleDay} />
 
-          <InsightTeaser entries={entries} stats={stats} />
+          <div className="bg-white/40 border border-rose-200/50 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-lg font-semibold text-rose-800">Insights</h3>
+              <button
+                onClick={() => onNavigate('insights')}
+                className="flex items-center gap-1 text-sm font-medium text-rose-400 hover:text-rose-600 transition-colors"
+              >
+                See full breakdown
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <InsightTeaser entries={entries} stats={stats} />
+          </div>
 
           <div className="bg-white/40 border border-rose-200/50 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">

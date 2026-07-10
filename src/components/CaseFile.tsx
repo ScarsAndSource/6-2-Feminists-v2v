@@ -36,6 +36,8 @@ interface CaseFileProps {
   entries: Entry[];
   onGenerated?: (report: PatternReport) => Promise<string | null> | void;
   isDemo?: boolean;
+  initialReport?: PatternReport | null;
+  onClearInitial?: () => void;
 }
 
 function Heart({ className }: { className?: string }) {
@@ -46,7 +48,7 @@ function Heart({ className }: { className?: string }) {
   );
 }
 
-export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps) {
+export function CaseFile({ entries, onGenerated, isDemo = false, initialReport, onClearInitial }: CaseFileProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(0);
   const [stats, setStats] = useState<ComputedStats | null>(null);
@@ -55,6 +57,20 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
   const [error, setError] = useState<string | null>(null);
   const [patternReportId, setPatternReportId] = useState<string | null>(null);
   const prevStatsRef = useRef<ComputedStats | null>(null);
+
+  useEffect(() => {
+    if (initialReport) {
+      setStats(initialReport.computed_stats);
+      setNarrative(initialReport.narrative);
+      setProvider(initialReport.provider);
+      setPatternReportId(initialReport.id);
+    } else {
+      setStats(null);
+      setNarrative(null);
+      setProvider(null);
+      setPatternReportId(null);
+    }
+  }, [initialReport]);
 
   const delta = useMemo(() => {
     if (!prevStatsRef.current || !stats) return null;
@@ -207,9 +223,18 @@ export function CaseFile({ entries, onGenerated, isDemo = false }: CaseFileProps
           <div className="no-print flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-rose-500">
               <div className="w-2 h-2 rounded-full bg-rose-400" />
-              <span>Generated with {provider === 'template' ? 'deterministic analysis' : `AI (${provider})`}</span>
+              <span>{initialReport ? `Viewing past Case File` : `Generated with ${provider === 'template' ? 'deterministic analysis' : `AI (${provider})`}`}</span>
             </div>
             <div className="flex items-center gap-2">
+              {initialReport && onClearInitial && (
+                <button
+                  onClick={onClearInitial}
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium rounded-lg transition-all border border-rose-200"
+                >
+                  <ChevronRight className="w-4 h-4 rotate-180" />
+                  Back
+                </button>
+              )}
               <button
                 onClick={handlePrint}
                 className="flex items-center gap-2 px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium rounded-lg transition-all"

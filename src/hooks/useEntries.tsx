@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Entry, TagEntry } from '../lib/types';
+import { useAuth } from './useAuth';
 
 export function useEntries() {
+  const { user, loading: authLoading } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchEntries = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     setError(null);
 
@@ -25,11 +28,17 @@ export function useEntries() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+    if (authLoading) return;
+    if (user) {
+      fetchEntries();
+    } else {
+      setEntries([]);
+      setLoading(false);
+    }
+  }, [fetchEntries, user, authLoading]);
 
   const addEntry = useCallback(
     async (tags: TagEntry[], cycleDay?: number) => {

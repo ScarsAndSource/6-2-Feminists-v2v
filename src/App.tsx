@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   FileText, Heart, ChevronRight, Sparkles, MessageCircle, Shield, Activity,
   ArrowRight, Calendar, Lock, Eye, Feather, Star, Quote, X,
-  Home as HomeIcon, Compass,
+  Home as HomeIcon, Compass, Settings as SettingsIcon,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
@@ -25,17 +25,22 @@ import { BotanicalLayer } from './components/BotanicalLayer';
 import { ParticleField } from './components/ParticleField';
 import { CycleConstellation } from './components/CycleConstellation';
 import { TextReveal } from './components/TextReveal';
+import { BottomNav } from './components/BottomNav';
+import { Timeline } from './components/Timeline';
+import { Insights } from './components/Insights';
+import { Settings } from './components/Settings';
+import { CaseFileHistory } from './components/CaseFileHistory';
 import { getCyclePhase, themeForPhase } from './lib/cyclePhase';
 import { computeStats } from './lib/aggregation';
 import { hasOnboarded } from './lib/localFlags';
 import type { Entry, TagEntry } from './lib/types';
 
-type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal';
+type TabType = 'home' | 'log' | 'timeline' | 'casefile' | 'rehearsal' | 'insights';
 
 function AppContent() {
   const { loading: authLoading } = useAuth();
   const { entries, loading: entriesLoading, addEntry, deleteEntry } = useEntries();
-  const { saveReport } = usePatternReports();
+  const { saveReport, reports, loading: reportsLoading } = usePatternReports();
   const { customTags, loading: customTagsLoading } = useCustomTags();
   const { settings: userSettings, loading: settingsLoading } = useUserSettings();
   const nextAppointmentAt = userSettings?.next_appointment_at ?? null;
@@ -45,11 +50,13 @@ function AppContent() {
   const [onboarding, setOnboarding] = useState(!hasOnboarded());
   const [demoMode, setDemoMode] = useState(false);
   const hasAutoNavigated = useRef(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [focusModeManual, setFocusMode] = useState(false);
   const focusMode = focusModeManual || activeTab === 'timeline' || activeTab === 'casefile';
   const [optimisticEntries, setOptimisticEntries] = useState<Entry[]>([]);
   const entrySubmitCount = useRef(0);
   const [showNudge, setShowNudge] = useState(false);
+  const [viewingReport, setViewingReport] = useState<PatternReport | null>(null);
 
   const activeEntries = demoMode ? demo.entries : entries;
   const stats = useMemo(() => computeStats(activeEntries), [activeEntries]);
@@ -196,9 +203,18 @@ function AppContent() {
               </div>
             </nav>
 
-            <div className="flex items-center gap-2 opacity-70">
-              <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse-soft" />
-              <span className="text-xs text-rose-400 hidden sm:block font-medium">{demoMode ? 'Sample' : 'Synced'}</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-rose-200/50 text-rose-400 hover:text-rose-600 transition-all active:scale-90"
+                aria-label="Settings"
+              >
+                <SettingsIcon className="w-[18px] h-[18px]" />
+              </button>
+              <div className="flex items-center gap-2 opacity-70">
+                <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse-soft" />
+                <span className="text-xs text-rose-400 hidden sm:block font-medium">{demoMode ? 'Sample' : 'Synced'}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -222,7 +238,7 @@ function AppContent() {
         </div>
       )}
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 relative z-10">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 sm:pb-6 relative z-10">
         {activeTab === 'home' && !demoMode && (
           <Home
             entries={displayEntries}
@@ -236,11 +252,11 @@ function AppContent() {
         )}
 
         {activeTab === 'timeline' && !demoMode && (
-          <div className="max-w-3xl mx-auto text-center py-16 animate-fade-in">
-            <p className="text-rose-400 text-sm">
-              Full Timeline (calendar heatmap + complete history) is next up — Home and Track have your recent entries for now.
-            </p>
-          </div>
+          <Timeline entries={displayEntries} onDelete={deleteEntry} loading={entriesLoading} />
+        )}
+
+        {activeTab === 'insights' && !demoMode && (
+          <Insights entries={displayEntries} stats={stats} />
         )}
 
         {activeTab === 'log' && !demoMode && (
@@ -333,6 +349,16 @@ function AppContent() {
               )}
             </div>
 
+            {!demoMode && !viewingReport && (
+              <div className="mb-6">
+                <CaseFileHistory
+                  reports={reports}
+                  loading={reportsLoading}
+                  onSelect={(report) => setViewingReport(report)}
+                />
+              </div>
+            )}
+
             {demoMode && demo.loading && (
               <div className="text-center py-16 text-rose-500 text-sm">Loading sample data...</div>
             )}
@@ -343,7 +369,13 @@ function AppContent() {
             {(!demoMode || demo.loaded) && (
               <div className="print-area">
                 <ErrorBoundary fallbackLabel="Something went wrong displaying this Case File">
-                  <CaseFile entries={activeEntries} onGenerated={demoMode ? undefined : saveReport} isDemo={demoMode} />
+                  <CaseFile 
+                    entries={activeEntries} 
+                    onGenerated={demoMode ? undefined : saveReport} 
+                    isDemo={demoMode} 
+                    initialReport={viewingReport}
+                    onClearInitial={() => setViewingReport(null)}
+                  />
                 </ErrorBoundary>
               </div>
             )}
@@ -365,7 +397,7 @@ function AppContent() {
         )}
       </main>
 
-      <footer className="border-t border-rose-200 py-4 px-6 relative z-10">
+      <footer className="border-t border-rose-200 py-4 px-6 relative z-10 hidden sm:block">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 text-sm text-rose-400">
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5" />
@@ -379,6 +411,16 @@ function AppContent() {
           )}
         </div>
       </footer>
+
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} entryCount={activeEntries.length > 0 ? activeEntries.length : undefined} />
+
+      <Settings
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        reports={reports}
+        reportsLoading={reportsLoading}
+        onShowLanding={() => setShowLanding(true)}
+      />
     </div>
   );
 }

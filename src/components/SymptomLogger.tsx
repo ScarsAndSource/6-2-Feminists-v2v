@@ -63,6 +63,7 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
   const [isListening, setIsListening] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [showCycleInput, setShowCycleInput] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const [undoEntryId, setUndoEntryId] = useState<string | null>(null);
   const [undoing, setUndoing] = useState(false);
@@ -235,6 +236,17 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
 
   const selectedArray = Array.from(selectedTags.values());
 
+  const topTags = useMemo(() => {
+    if (!tagFrequency || Object.keys(tagFrequency).length === 0) {
+      return ['fatigue', 'headache', 'bloating', 'mood_change', 'other'];
+    }
+    const ranked = Object.entries(tagFrequency)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag);
+    if (!ranked.includes('other')) ranked.push('other');
+    return ranked.slice(0, 8);
+  }, [tagFrequency]);
+
   return (
     <div className="space-y-8">
       <div className="space-y-6">
@@ -254,15 +266,21 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
             <ChevronRight className="w-4 h-4 ml-auto" />
           </button>
         )}
-        {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags]) => (
-          <div key={category}>
-            <h4 className="text-sm font-bold text-rose-500 uppercase tracking-wider mb-3">
-              {CATEGORY_LABELS[category]}
-            </h4>
+        {!showAllCategories ? (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-bold text-rose-500 uppercase tracking-wider">
+                Top Symptoms
+              </h4>
+              <button
+                onClick={() => setShowAllCategories(true)}
+                className="text-xs font-medium text-rose-400 hover:text-rose-600 transition-colors"
+              >
+                Show all
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2.5">
-              {[...tags]
-                .sort((a, b) => (tagFrequency?.[b] ?? 0) - (tagFrequency?.[a] ?? 0))
-                .map(tag => (
+              {topTags.map(tag => (
                 <SymptomTag
                   key={tag}
                   tag={tag}
@@ -278,7 +296,43 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
               ))}
             </div>
           </div>
-        ))}
+        ) : (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowAllCategories(false)}
+                className="text-xs font-medium text-rose-400 hover:text-rose-600 transition-colors"
+              >
+                Show less
+              </button>
+            </div>
+            {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags]) => (
+              <div key={category}>
+                <h4 className="text-sm font-bold text-rose-500 uppercase tracking-wider mb-3">
+                  {CATEGORY_LABELS[category]}
+                </h4>
+                <div className="flex flex-wrap gap-2.5">
+                  {[...tags]
+                    .sort((a, b) => (tagFrequency?.[b] ?? 0) - (tagFrequency?.[a] ?? 0))
+                    .map(tag => (
+                    <SymptomTag
+                      key={tag}
+                      tag={tag}
+                      isSelected={selectedTags.has(tag)}
+                      severity={selectedTags.get(tag)?.severity}
+                      onClick={() => handleTagClick(tag)}
+                      onSeverityChange={(sev) => handleSeverityChange(tag, sev)}
+                      disabled={disabled}
+                      otherText={tag === 'other' ? otherText : undefined}
+                      onOtherTextChange={tag === 'other' ? handleOtherTextChange : undefined}
+                      previousOtherNotes={tag === 'other' ? previousOtherNotes : undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {customTags.length > 0 && (
           <div>
@@ -326,11 +380,11 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocu
               disabled={disabled || isListening}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
                 isListening
-                  ? 'bg-coral-500/20 text-coral-400 border border-coral-500/30 voice-pulse'
+                  ? 'bg-coral-500/20 text-coral-400 border border-coral-500/30'
                   : 'bg-rose-100/50 text-rose-400 hover:text-rose-700 hover:bg-rose-200'
               }`}
             >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              {isListening ? <WaveformIcon /> : <Mic className="w-4 h-4" />}
               <span>{isListening ? 'Listening...' : 'Voice'}</span>
             </button>
           )}
@@ -625,6 +679,26 @@ function SymptomTag({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function WaveformIcon() {
+  return (
+    <div className="flex items-center justify-between w-4 h-4 px-[1px]">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <motion.div
+          key={i}
+          className="w-[2px] bg-coral-400 rounded-full"
+          animate={{ height: ['4px', '14px', '4px'] }}
+          transition={{
+            duration: 0.8,
+            repeat: Infinity,
+            delay: i * 0.1,
+            ease: 'easeInOut'
+          }}
+        />
+      ))}
     </div>
   );
 }
