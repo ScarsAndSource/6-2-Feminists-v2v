@@ -3,6 +3,7 @@ import { themeForPhase, type CyclePhase } from '../lib/cyclePhase';
 
 interface CycleAmbientBackgroundProps {
   phase: CyclePhase;
+  focusMode?: boolean;
 }
 
 interface InkBleed {
@@ -56,7 +57,7 @@ function traceOrganicPath(
   ctx.closePath();
 }
 
-export function CycleAmbientBackground({ phase }: CycleAmbientBackgroundProps) {
+export function CycleAmbientBackground({ phase, focusMode }: CycleAmbientBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const themeRef = useRef(themeForPhase(phase));
   const displayedInk = useRef<[number, number, number][]>(
@@ -187,7 +188,7 @@ export function CycleAmbientBackground({ phase }: CycleAmbientBackgroundProps) {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 -z-10 pointer-events-none"
-      style={{ width: '100vw', height: '100vh' }}
+      style={{ width: '100vw', height: '100vh', opacity: focusMode ? 0.3 : 1, transition: 'opacity 0.8s ease' }}
       aria-hidden="true"
     />
   );

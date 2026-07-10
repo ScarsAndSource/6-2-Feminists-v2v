@@ -62,7 +62,7 @@ export function EntryHistory({ entries, onDelete, loading }: EntryHistoryProps) 
             >
               <div className="absolute left-[10px] top-4 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 ring-4 ring-rose-50" />
 
-              <div className="group bg-white/60 hover:bg-white border border-rose-200/50 hover:border-rose-300/60 rounded-2xl p-3.5 transition-all duration-300 hover:shadow-soft shimmer-overlay">
+              <div className={`${entry.user_id === 'optimistic' ? 'animate-pulse' : ''} bg-white/60 hover:bg-white border border-rose-200/50 hover:border-rose-300/60 rounded-2xl p-3.5 transition-all duration-300 hover:shadow-soft shimmer-overlay`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-sm text-rose-400 mb-2 font-medium">
@@ -97,7 +97,7 @@ export function EntryHistory({ entries, onDelete, loading }: EntryHistoryProps) 
                   <button
                     onClick={() => onDelete(entry.id)}
                     disabled={loading}
-                    className="p-1.5 rounded-lg text-rose-300 hover:text-blush-600 hover:bg-blush-400/10 opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                    className="p-1.5 rounded-lg text-rose-300/60 hover:text-blush-600 hover:bg-blush-400/10 transition-all active:scale-90"
                     title="Delete entry"
                   >
                     <Trash2 className="w-4 h-4" />

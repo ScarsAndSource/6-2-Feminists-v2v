@@ -68,7 +68,7 @@ function drawSparkle(ctx: CanvasRenderingContext2D, x: number, y: number, size: 
   ctx.restore();
 }
 
-export function ParticleField({ count = 16 }: { count?: number }) {
+export function ParticleField({ count = 16, focusMode }: { count?: number; focusMode?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -175,7 +175,7 @@ export function ParticleField({ count = 16 }: { count?: number }) {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 -z-10 pointer-events-none"
-      style={{ width: '100vw', height: '100vh' }}
+      style={{ width: '100vw', height: '100vh', opacity: focusMode ? 0.3 : 1, transition: 'opacity 0.8s ease' }}
     />
   );
 }

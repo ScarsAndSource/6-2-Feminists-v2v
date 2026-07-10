@@ -95,9 +95,11 @@ const PLACEMENTS: SprigPlacement[] = [
   { Component: BentGrass, bottom: '-1%', left: '22%', width: 55, rotate: -3, depth: 0.75, swayDuration: 6.5 },
 ];
 
-export function BotanicalLayer({ tint = 'rgb(184, 51, 106)' }: { tint?: string }) {
+export function BotanicalLayer({ tint = 'rgb(184, 51, 106)', focusMode }: { tint?: string; focusMode?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const focusRef = useRef(false);
+  focusRef.current = !!focusMode;
 
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -105,6 +107,7 @@ export function BotanicalLayer({ tint = 'rgb(184, 51, 106)' }: { tint?: string }
 
     let frame = 0;
     const handleMove = (e: MouseEvent) => {
+      if (focusRef.current) return;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const nx = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -129,7 +132,7 @@ export function BotanicalLayer({ tint = 'rgb(184, 51, 106)' }: { tint?: string }
     <div
       ref={containerRef}
       className="fixed inset-0 -z-[9] pointer-events-none overflow-hidden"
-      style={{ color: tint }}
+      style={{ color: tint, opacity: focusMode ? 0.3 : 1, transition: 'opacity 0.8s ease' }}
       aria-hidden="true"
     >
       {PLACEMENTS.map((p, i) => (

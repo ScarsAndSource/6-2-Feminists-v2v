@@ -36,6 +36,7 @@ import { ParticleField } from './components/ParticleField';
 import { TextReveal } from './components/TextReveal';
 import { getCyclePhase, themeForPhase } from './lib/cyclePhase';
 import { computeStats } from './lib/aggregation';
+import type { Entry, TagEntry } from './lib/types';
 
 type TabType = 'log' | 'casefile' | 'rehearsal';
 
@@ -51,9 +52,29 @@ function AppContent() {
   const [showLanding, setShowLanding] = useState(true);
   const [demoMode, setDemoMode] = useState(false);
   const hasAutoNavigated = useRef(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [optimisticEntries, setOptimisticEntries] = useState<Entry[]>([]);
 
   const activeEntries = demoMode ? demo.entries : entries;
   const stats = useMemo(() => computeStats(activeEntries), [activeEntries]);
+
+  const displayEntries = useMemo(() =>
+    demoMode ? activeEntries : [...optimisticEntries, ...activeEntries],
+    [activeEntries, optimisticEntries, demoMode]
+  );
+  const lastEntry = useMemo(() => {
+    if (displayEntries.length === 0) return null;
+    return [...displayEntries].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  }, [displayEntries]);
+  const tagFrequency = useMemo(() => {
+    const freq: Record<string, number> = {};
+    for (const e of activeEntries) {
+      for (const t of e.tags) {
+        freq[t.tag] = (freq[t.tag] || 0) + 1;
+      }
+    }
+    return freq;
+  }, [activeEntries]);
 
   const mostRecentCycleDay = activeEntries.length
     ? [...activeEntries].sort((a, b) => b.created_at.localeCompare(a.created_at))[0].cycle_day
@@ -71,6 +92,26 @@ function AppContent() {
   const exitDemo = () => {
     setDemoMode(false);
     setActiveTab('log');
+  };
+
+  const handleAddEntry = async (tags: TagEntry[], cycleDay?: number) => {
+    const optimisticId = `opt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const optimisticEntry: Entry = {
+      id: optimisticId,
+      user_id: 'optimistic',
+      tags,
+      cycle_day: cycleDay ?? null,
+      created_at: new Date().toISOString(),
+    };
+    setOptimisticEntries(prev => [optimisticEntry, ...prev]);
+    try {
+      const realEntry = await addEntry(tags, cycleDay);
+      setOptimisticEntries(prev => prev.filter(e => e.id !== optimisticId));
+      return realEntry;
+    } catch (e) {
+      setOptimisticEntries(prev => prev.filter(e => e.id !== optimisticId));
+      throw e;
+    }
   };
 
   useEffect(() => {
@@ -105,9 +146,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col no-print relative bg-slate-950">
-      <CycleAmbientBackground phase={cyclePhase} />
-      <BotanicalLayer tint={phaseTheme.accent} />
-      <ParticleField count={14} />
+      <CycleAmbientBackground phase={cyclePhase} focusMode={focusMode} />
+      <BotanicalLayer tint={phaseTheme.accent} focusMode={focusMode} />
+      <ParticleField count={14} focusMode={focusMode} />
 
       <header className="sticky top-0 z-50 glass border-b border-teal-500/20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
@@ -203,17 +244,20 @@ function AppContent() {
                     </div>
                   </div>
                   <SymptomLogger
-                    onSubmit={addEntry}
+                    onSubmit={handleAddEntry}
                     onDelete={deleteEntry}
                     disabled={entriesLoading}
                     customTags={customTags}
+                    onFocusChange={setFocusMode}
+                    lastEntry={lastEntry}
+                    tagFrequency={tagFrequency}
                   />
                 </div>
               </div>
             </div>
 
             <div className="lg:col-span-2">
-              <EntryHistory entries={entries} onDelete={deleteEntry} loading={entriesLoading} />
+              <EntryHistory entries={displayEntries} onDelete={deleteEntry} loading={entriesLoading} />
             </div>
           </div>
         )}

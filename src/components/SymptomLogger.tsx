@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Undo2, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, ChevronRight, Sparkles, Undo2, AlertCircle } from 'lucide-react';
 import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry, type CustomTag } from '../lib/types';
 import type { Entry } from '../lib/types';
 import { getTagLabel, slugifyCustomTag } from '../lib/tagLabels';
@@ -10,6 +10,9 @@ interface SymptomLoggerProps {
   onDelete: (id: string) => Promise<void>;
   customTags: CustomTag[];
   disabled?: boolean;
+  onFocusChange?: (focused: boolean) => void;
+  lastEntry?: Entry | null;
+  tagFrequency?: Record<string, number>;
 }
 
 const SYMPTOM_CATEGORIES = {
@@ -51,7 +54,7 @@ function describeVoiceError(code: string): string {
   }
 }
 
-export function SymptomLogger({ onSubmit, onDelete, customTags, disabled }: SymptomLoggerProps) {
+export function SymptomLogger({ onSubmit, onDelete, customTags, disabled, onFocusChange, lastEntry, tagFrequency }: SymptomLoggerProps) {
   const [selectedTags, setSelectedTags] = useState<Map<string, TagEntry>>(new Map());
   const [cycleDay, setCycleDay] = useState<number | ''>('');
   const [otherText, setOtherText] = useState('');
@@ -70,6 +73,23 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled }: Symp
       if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
     };
   }, []);
+
+  const prevSelectedRef = useRef(0);
+  useEffect(() => {
+    const hasSelected = selectedTags.size > 0;
+    if (hasSelected !== (prevSelectedRef.current > 0)) {
+      onFocusChange?.(hasSelected);
+    }
+    prevSelectedRef.current = selectedTags.size;
+  }, [selectedTags.size, onFocusChange]);
+
+  useEffect(() => {
+    if (lastEntry?.cycle_day && cycleDay === '') {
+      const suggested = Math.min(lastEntry.cycle_day + 1, 28);
+      setCycleDay(suggested);
+      setShowCycleInput(true);
+    }
+  }, [lastEntry?.cycle_day]);
 
   const speechSupported = useMemo(() => {
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -217,13 +237,31 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled }: Symp
   return (
     <div className="space-y-8">
       <div className="space-y-6">
+        {lastEntry && lastEntry.tags.length > 0 && selectedTags.size === 0 && (
+          <button
+            onClick={() => {
+              const map = new Map<string, TagEntry>();
+              for (const t of lastEntry.tags) {
+                map.set(t.tag, t);
+              }
+              setSelectedTags(map);
+            }}
+            className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-sm text-teal-300 hover:bg-teal-500/20 transition-all"
+          >
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span>Same as last time ({lastEntry.tags.length} symptom{lastEntry.tags.length > 1 ? 's' : ''})</span>
+            <ChevronRight className="w-4 h-4 ml-auto" />
+          </button>
+        )}
         {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags]) => (
           <div key={category}>
             <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
               {CATEGORY_LABELS[category]}
             </h4>
             <div className="flex flex-wrap gap-2.5">
-              {tags.map(tag => (
+              {[...tags]
+                .sort((a, b) => (tagFrequency?.[b] ?? 0) - (tagFrequency?.[a] ?? 0))
+                .map(tag => (
                 <SymptomTag
                   key={tag}
                   tag={tag}
@@ -412,8 +450,29 @@ export function SymptomLogger({ onSubmit, onDelete, customTags, disabled }: Symp
         </button>
       </div>
 
+      {selectedTags.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-md border-t border-teal-500/20 px-4 py-3 sm:py-3">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <span className="text-sm text-slate-400">
+              <span className="font-semibold text-white">{selectedTags.size}</span> selected
+            </span>
+            <button
+              onClick={handleSubmit}
+              disabled={disabled || submitting}
+              className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all flex items-center gap-2"
+            >
+              {submitting ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Logging...</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Log {selectedTags.size} Symptom{selectedTags.size > 1 ? 's' : ''}</>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {undoEntryId && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 toast">
+        <div className={`fixed ${selectedTags.size > 0 ? 'bottom-20' : 'bottom-6'} left-1/2 -translate-x-1/2 z-50 toast`}>
           <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-2xl px-5 py-3 shadow-2xl">
             <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center shrink-0">
               <Check className="w-4 h-4 text-teal-400" />
