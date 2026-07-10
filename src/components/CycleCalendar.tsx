@@ -10,9 +10,12 @@ interface CycleCalendarProps {
 }
 
 export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) {
-  const { logs, startPeriod, endPeriod, isOnPeriod, activeLog, predictedNextPeriod, averagePeriodLength } = usePeriodLog();
+  const { logs, startPeriod, endPeriod, editPeriod, deletePeriod, addPastPeriod, isOnPeriod, activeLog, predictedNextPeriod, averagePeriodLength } = usePeriodLog();
   const [viewMonth, setViewMonth] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [showPastForm, setShowPastForm] = useState(false);
+  const [pastStart, setPastStart] = useState('');
+  const [pastEnd, setPastEnd] = useState('');
 
   const periodDaySet = useMemo(() => {
     const set = new Set<string>();
@@ -54,6 +57,41 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
   const selectedDayIsPeriod = selectedDay ? periodDaySet.has(selectedDay) : false;
   const selectedCycleDay = selectedDay && logs.length > 0 ? daysBetweenKeys(logs[0].start_date, selectedDay) + 1 : null;
 
+  const selectedPeriodLog = selectedDay ? logs.find(l => selectedDay >= l.start_date && (!l.end_date || selectedDay <= l.end_date)) ?? null : null;
+  const [editingPeriod, setEditingPeriod] = useState<string | null>(null);
+  const [editStart, setEditStart] = useState('');
+  const [editEnd, setEditEnd] = useState('');
+
+  const handleEditPeriod = (logId: string) => {
+    const log = logs.find(l => l.id === logId);
+    if (!log) return;
+    setEditingPeriod(logId);
+    setEditStart(log.start_date);
+    setEditEnd(log.end_date ?? '');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingPeriod) return;
+    if (editStart) editPeriod(editingPeriod, { start_date: editStart });
+    if (editEnd) editPeriod(editingPeriod, { end_date: editEnd });
+    setEditingPeriod(null);
+    setSelectedDay(null);
+  };
+
+  const handleDeletePeriod = (id: string) => {
+    deletePeriod(id);
+    setSelectedDay(null);
+  };
+
+  const handleAddPastPeriod = () => {
+    if (!pastStart || !pastEnd) return;
+    addPastPeriod(pastStart, pastEnd);
+    setPastStart('');
+    setPastEnd('');
+    setShowPastForm(false);
+    setSelectedDay(null);
+  };
+
   return (
     <div className={`glass rounded-3xl ${compact ? 'p-4' : 'p-6'}`}>
       <div className="flex items-center justify-between mb-4">
@@ -88,7 +126,10 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
             <button
               key={day}
               type="button"
-              onClick={() => setSelectedDay(dateKey === selectedDay ? null : dateKey)}
+              onClick={() => {
+                setSelectedDay(dateKey === selectedDay ? null : dateKey);
+                setEditingPeriod(null);
+              }}
               className={`aspect-square rounded-full flex items-center justify-center text-xs font-sans relative transition-transform
                 ${isPeriod ? 'bg-rose-500 text-white' : isPredicted ? 'border-2 border-dashed border-rose-300 text-rose-500' : isFuture ? 'text-rose-950/30' : 'text-rose-950/70'}
                 ${isToday ? 'ring-2 ring-rose-800 ring-offset-1' : ''}
@@ -126,6 +167,37 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
             </div>
           )}
 
+          {selectedPeriodLog && editingPeriod === selectedPeriodLog.id ? (
+            <div className="space-y-3 bg-rose-50/80 rounded-2xl p-4">
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-sans text-rose-600">Start:</label>
+                <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} className="flex-1 px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-sm text-rose-800" />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-sans text-rose-600">End:</label>
+                <input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} className="flex-1 px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-sm text-rose-800" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSaveEdit} className="text-xs font-sans font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-full px-4 py-1.5">Save</button>
+                <button onClick={() => setEditingPeriod(null)} className="text-xs font-sans font-medium text-rose-600 bg-rose-100 hover:bg-rose-200 rounded-full px-4 py-1.5">Cancel</button>
+                <button onClick={() => { handleDeletePeriod(selectedPeriodLog.id); setEditingPeriod(null); }} className="text-xs font-sans font-medium text-rose-500 bg-rose-100 hover:bg-rose-200 rounded-full px-4 py-1.5 ml-auto">Delete period</button>
+              </div>
+            </div>
+          ) : selectedPeriodLog ? (
+            <div className="flex items-center justify-between bg-rose-50/60 rounded-2xl px-4 py-2.5">
+              <div className="flex items-center gap-3 text-xs font-sans text-rose-700">
+                <Icon name="water_drop" size={16} />
+                <span>{formatDateLabel(selectedPeriodLog.start_date)}</span>
+                <span className="text-rose-300">→</span>
+                <span>{selectedPeriodLog.end_date ? formatDateLabel(selectedPeriodLog.end_date) : 'ongoing'}</span>
+                {selectedPeriodLog.end_date && (
+                  <span className="text-rose-400">({daysBetweenKeys(selectedPeriodLog.start_date, selectedPeriodLog.end_date) + 1} days)</span>
+                )}
+              </div>
+              <button onClick={() => handleEditPeriod(selectedPeriodLog.id)} className="text-xs font-sans text-rose-500 hover:text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-full px-3 py-1">Edit</button>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-2">
             {!selectedDayIsPeriod && (
               <button
@@ -150,7 +222,7 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
         </div>
       )}
 
-      <div className={`flex items-center justify-between flex-wrap gap-2 ${selectedDay && !compact ? 'mt-4' : 'mt-4'}`}>
+      <div className="flex items-center justify-between flex-wrap gap-2 mt-4">
         {isOnPeriod && activeLog ? (
           <button onClick={() => endPeriod(activeLog.id)} className="text-sm font-sans font-medium text-rose-800 flex items-center gap-2">
             <Icon name="event_busy" size={18} /> Mark period ended today
@@ -160,7 +232,10 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
             <Icon name="water_drop" size={18} /> Log period start today
           </button>
         )}
-        <div className="text-right">
+        <button onClick={() => setShowPastForm(!showPastForm)} className="text-sm font-sans font-medium text-rose-600 hover:text-rose-800 flex items-center gap-2">
+          <Icon name="history" size={18} /> Log past period
+        </button>
+        <div className="text-right w-full sm:w-auto">
           {prediction && (
             <div className="text-xs font-sans text-rose-950/50">
               Next expected around {formatDateLabel(prediction.date)}{prediction.confidence === 'low' && ' (rough estimate)'}
@@ -171,6 +246,46 @@ export function CycleCalendar({ entries, compact = false }: CycleCalendarProps) 
           )}
         </div>
       </div>
+
+      {showPastForm && (
+        <div className="mt-4 pt-4 border-t border-rose-200/40 space-y-3 animate-fade-in">
+          <p className="text-xs font-sans text-rose-600">Add a past period with both start and end dates:</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-sans text-rose-500">Start:</label>
+              <input type="date" value={pastStart} onChange={e => setPastStart(e.target.value)} className="px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-sm text-rose-800" />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-sans text-rose-500">End:</label>
+              <input type="date" value={pastEnd} onChange={e => setPastEnd(e.target.value)} className="px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-sm text-rose-800" />
+            </div>
+            <button onClick={handleAddPastPeriod} disabled={!pastStart || !pastEnd} className="text-xs font-sans font-medium text-white bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 disabled:cursor-not-allowed rounded-full px-4 py-1.5">Add</button>
+            <button onClick={() => { setShowPastForm(false); setPastStart(''); setPastEnd(''); }} className="text-xs font-sans font-medium text-rose-600 bg-rose-100 hover:bg-rose-200 rounded-full px-4 py-1.5">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {logs.length > 0 && !compact && (
+        <div className="mt-5 pt-4 border-t border-rose-200/40">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-sans font-semibold text-rose-600 uppercase tracking-wide">Period history</span>
+            <span className="text-xs font-sans text-rose-400">{logs.length} logged</span>
+          </div>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+            {logs.map(log => (
+              <div key={log.id} className="flex items-center justify-between bg-white/40 rounded-xl px-3 py-2 text-xs font-sans text-rose-700">
+                <span>
+                  {formatDateLabel(log.start_date)} {log.end_date ? `→ ${formatDateLabel(log.end_date)} (${daysBetweenKeys(log.start_date, log.end_date) + 1}d)` : '→ ongoing'}
+                </span>
+                <div className="flex gap-1.5">
+                  <button onClick={() => { handleEditPeriod(log.id); setSelectedDay(log.start_date); }} className="text-rose-400 hover:text-rose-600"><Icon name="edit" size={14} /></button>
+                  <button onClick={() => deletePeriod(log.id)} className="text-rose-400 hover:text-rose-600"><Icon name="delete" size={14} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

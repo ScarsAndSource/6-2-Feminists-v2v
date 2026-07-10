@@ -1,12 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { storageGet, storageSet, onStorageChange } from '../lib/storage';
+import { getAvgCycleLength } from '../lib/localFlags';
 import { todayKey, daysBetweenKeys, addDaysToKey } from '../lib/dateUtils';
 import type { PeriodLog } from '../lib/types';
 
 const KEY = 'period_logs';
-
-const MAX_PLAUSIBLE_CYCLE_LENGTH = 45;
-const MIN_PLAUSIBLE_CYCLE_LENGTH = 15;
 
 function sortDesc(logs: PeriodLog[]): PeriodLog[] {
   return [...logs].sort((a, b) => b.start_date.localeCompare(a.start_date));
@@ -49,9 +47,21 @@ export function usePeriodLog() {
     persist(current.filter(l => l.id !== id));
   }, [persist]);
 
+  const addPastPeriod = useCallback((start_date: string, end_date: string) => {
+    if (end_date < start_date) end_date = start_date;
+    const current = storageGet<PeriodLog[]>(KEY, []);
+    const log: PeriodLog = { id: crypto.randomUUID(), start_date, end_date, created_at: new Date().toISOString() };
+    persist([log, ...current]);
+  }, [persist]);
+
   const currentCycleDay = useCallback((): number | null => {
     if (logs.length === 0) return null;
-    return daysBetweenKeys(logs[0].start_date, todayKey()) + 1;
+    const daysSince = daysBetweenKeys(logs[0].start_date, todayKey()) + 1;
+    const userCycle = getAvgCycleLength();
+    if (userCycle && daysSince > userCycle) {
+      return ((daysSince - 1) % userCycle) + 1;
+    }
+    return daysSince;
   }, [logs]);
 
   const averagePeriodLength = useCallback((): number | null => {
@@ -62,12 +72,21 @@ export function usePeriodLog() {
   }, [logs]);
 
   const predictedNextPeriod = useCallback((): { date: string; avgCycleLength: number; confidence: 'low' | 'ok' } | null => {
+    if (logs.length === 0) return null;
+    const userCycle = getAvgCycleLength();
+    if (userCycle && userCycle >= 15 && userCycle <= 60) {
+      return {
+        date: addDaysToKey(logs[0].start_date, userCycle),
+        avgCycleLength: userCycle,
+        confidence: 'ok'
+      };
+    }
     const completed = logs.filter(l => l.end_date).slice(0, 6);
     if (completed.length < 2) return null;
     const gaps: number[] = [];
     for (let i = 0; i < completed.length - 1; i++) {
       const gap = Math.abs(daysBetweenKeys(completed[i].start_date, completed[i + 1].start_date));
-      if (gap >= MIN_PLAUSIBLE_CYCLE_LENGTH && gap <= MAX_PLAUSIBLE_CYCLE_LENGTH) gaps.push(gap);
+      if (gap >= 15 && gap <= 60) gaps.push(gap);
     }
     if (gaps.length === 0) return null;
     const avg = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
@@ -82,7 +101,7 @@ export function usePeriodLog() {
   const activeLog = logs.find(l => l.end_date === null) ?? null;
 
   return {
-    logs, startPeriod, endPeriod, editPeriod, deletePeriod,
+    logs, startPeriod, endPeriod, editPeriod, deletePeriod, addPastPeriod,
     currentCycleDay, averagePeriodLength, predictedNextPeriod,
     isOnPeriod, activeLog
   };

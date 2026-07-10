@@ -5,6 +5,7 @@ import type { Entry, PeriodLog } from '../lib/types';
 interface DoctorAdviceProps {
   entries: Entry[];
   periodLogs: PeriodLog[];
+  userCycleLength?: number | null;
 }
 
 const URGENCY_STYLE: Record<string, { bg: string; text: string; icon: string }> = {
@@ -14,8 +15,8 @@ const URGENCY_STYLE: Record<string, { bg: string; text: string; icon: string }> 
   none: { bg: 'bg-white/60', text: 'text-rose-900', icon: 'check_circle' }
 };
 
-export function DoctorAdvice({ entries, periodLogs }: DoctorAdviceProps) {
-  const rec = computeDoctorRecommendation(entries, periodLogs);
+export function DoctorAdvice({ entries, periodLogs, userCycleLength }: DoctorAdviceProps) {
+  const rec = computeDoctorRecommendation(entries, periodLogs, userCycleLength);
   const style = URGENCY_STYLE[rec.urgency] ?? URGENCY_STYLE.none;
 
   return (

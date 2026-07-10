@@ -44,19 +44,11 @@ function buildTagWindows(entries: Entry[], sinceDate: string): TagWindow[] {
   return [...map.values()];
 }
 
-function plausibleAverageCycle(periodLogs: PeriodLog[]): number | null {
-  const completed = periodLogs.filter(l => l.end_date).slice(0, 6);
-  if (completed.length < 2) return null;
-  const gaps: number[] = [];
-  for (let i = 0; i < completed.length - 1; i++) {
-    const g = Math.abs(daysBetweenKeys(completed[i].start_date, completed[i + 1].start_date));
-    if (g >= 15 && g <= 60) gaps.push(g);
-  }
-  if (gaps.length === 0) return null;
-  return Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
-}
-
-export function computeDoctorRecommendation(entries: Entry[], periodLogs: PeriodLog[]): DoctorRecommendation {
+export function computeDoctorRecommendation(
+  entries: Entry[],
+  periodLogs: PeriodLog[],
+  userCycleLength?: number | null
+): DoctorRecommendation {
   const flags: DoctorFlag[] = [];
   const sinceDate = addDaysToKey(todayKey(), -LOOKBACK_DAYS);
   const entryCount = entries.length;
@@ -144,9 +136,21 @@ export function computeDoctorRecommendation(entries: Entry[], periodLogs: Period
       });
     }
   }
+
   if (periodLogs.length > 0 && periodLogs[0].end_date !== null) {
     const daysSinceLastStart = daysBetweenKeys(periodLogs[0].start_date, todayKey());
-    const avgLen = plausibleAverageCycle(periodLogs);
+    const effectiveCycle = userCycleLength && userCycleLength >= 15 && userCycleLength <= 60 ? userCycleLength : null;
+    const avgLen = effectiveCycle || (() => {
+      const completed = periodLogs.filter(l => l.end_date).slice(0, 6);
+      if (completed.length < 2) return null;
+      const gaps: number[] = [];
+      for (let i = 0; i < completed.length - 1; i++) {
+        const g = Math.abs(daysBetweenKeys(completed[i].start_date, completed[i + 1].start_date));
+        if (g >= 15 && g <= 60) gaps.push(g);
+      }
+      if (gaps.length === 0) return null;
+      return Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
+    })();
     if (avgLen && daysSinceLastStart > avgLen + LATE_PERIOD_BUFFER_DAYS) {
       flags.push({
         id: 'period-late',
