@@ -1,11 +1,13 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Undo2, Heart, AlertCircle } from 'lucide-react';
-import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry } from '../lib/types';
+import { Mic, MicOff, Check, X, ChevronDown, ChevronUp, Sparkles, Undo2, AlertCircle } from 'lucide-react';
+import { TAG_VOCABULARY, TAG_LABELS, SEVERITY_LABELS, type TagEntry, type CustomTag } from '../lib/types';
 import type { Entry } from '../lib/types';
+import { getTagLabel, slugifyCustomTag } from '../lib/tagLabels';
 
 interface SymptomLoggerProps {
   onSubmit: (tags: TagEntry[], cycleDay?: number) => Promise<Entry | void>;
   onDelete: (id: string) => Promise<void>;
+  customTags: CustomTag[];
   disabled?: boolean;
 }
 
@@ -48,14 +50,18 @@ function describeVoiceError(code: string): string {
   }
 }
 
-export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerProps) {
+export function SymptomLogger({ onSubmit, onDelete, customTags, disabled }: SymptomLoggerProps) {
   const [selectedTags, setSelectedTags] = useState<Map<string, TagEntry>>(new Map());
   const [cycleDay, setCycleDay] = useState<number | ''>('');
   const [otherText, setOtherText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [showCycleInput, setShowCycleInput] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [showCycleInput, setShowCycleInput] = useState(false);
+
+  const [undoEntryId, setUndoEntryId] = useState<string | null>(null);
+  const [undoing, setUndoing] = useState(false);
+
   const voiceErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -63,9 +69,6 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
       if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
     };
   }, []);
-
-  const [undoEntryId, setUndoEntryId] = useState<string | null>(null);
-  const [undoing, setUndoing] = useState(false);
 
   const speechSupported = useMemo(() => {
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -88,9 +91,7 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
     setSelectedTags(prev => {
       const newMap = new Map(prev);
       const existing = newMap.get(tag);
-      if (existing) {
-        newMap.set(tag, { ...existing, severity });
-      }
+      if (existing) newMap.set(tag, { ...existing, severity });
       return newMap;
     });
   }, []);
@@ -147,7 +148,7 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
     }
   };
 
-  const showVoiceErrorMsg = useCallback((message: string) => {
+  const showVoiceError = useCallback((message: string) => {
     if (!message) return;
     setVoiceError(message);
     if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
@@ -156,7 +157,6 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
 
   const handleVoiceInput = useCallback(() => {
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-
     if (!SpeechRecognitionCtor) return;
 
     setVoiceError(null);
@@ -172,13 +172,20 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
       setIsListening(false);
 
       let matched = false;
+
       for (const tag of TAG_VOCABULARY) {
         if (tag === 'other') continue;
         const label = TAG_LABELS[tag].toLowerCase();
         if (transcript.includes(label) || transcript.includes(tag.replace('_', ' '))) {
-          if (!selectedTags.has(tag)) {
-            handleTagClick(tag);
-          }
+          if (!selectedTags.has(tag)) handleTagClick(tag);
+          matched = true;
+        }
+      }
+
+      for (const custom of customTags) {
+        const key = slugifyCustomTag(custom.label);
+        if (transcript.includes(custom.label.toLowerCase())) {
+          if (!selectedTags.has(key)) handleTagClick(key);
           matched = true;
         }
       }
@@ -191,7 +198,7 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       setIsListening(false);
-      showVoiceErrorMsg(describeVoiceError(event.error));
+      showVoiceError(describeVoiceError(event.error));
     };
 
     recognition.onend = () => setIsListening(false);
@@ -200,92 +207,109 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
       recognition.start();
     } catch {
       setIsListening(false);
-      showVoiceErrorMsg(describeVoiceError('unknown'));
+      showVoiceError(describeVoiceError('unknown'));
     }
-  }, [selectedTags, handleTagClick, handleOtherTextChange, showVoiceErrorMsg]);
+  }, [selectedTags, customTags, handleTagClick, handleOtherTextChange, showVoiceError]);
 
   const selectedArray = Array.from(selectedTags.values());
 
   return (
     <div className="space-y-8">
-      {/* Symptom Grid */}
       <div className="space-y-6">
-        {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags], catIndex) => (
-            <div
-              key={category}
-              className="rise-fade"
-              style={{ animationDelay: `${catIndex * 80}ms`, opacity: 0 }}
-            >
-              <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-3">
-                {CATEGORY_LABELS[category]}
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {tags.map(tag => (
-                  <SymptomTag
-                    key={tag}
-                    tag={tag}
-                    isSelected={selectedTags.has(tag)}
-                    severity={selectedTags.get(tag)?.severity}
-                    onClick={() => handleTagClick(tag)}
-                    onSeverityChange={(sev) => handleSeverityChange(tag, sev)}
-                    disabled={disabled}
-                    otherText={tag === 'other' ? otherText : undefined}
-                    onOtherTextChange={tag === 'other' ? handleOtherTextChange : undefined}
-                  />
-                ))}
-              </div>
+        {Object.entries(SYMPTOM_CATEGORIES).map(([category, tags]) => (
+          <div key={category}>
+            <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">
+              {CATEGORY_LABELS[category]}
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {tags.map(tag => (
+                <SymptomTag
+                  key={tag}
+                  tag={tag}
+                  isSelected={selectedTags.has(tag)}
+                  severity={selectedTags.get(tag)?.severity}
+                  onClick={() => handleTagClick(tag)}
+                  onSeverityChange={(sev) => handleSeverityChange(tag, sev)}
+                  disabled={disabled}
+                  otherText={tag === 'other' ? otherText : undefined}
+                  onOtherTextChange={tag === 'other' ? handleOtherTextChange : undefined}
+                />
+              ))}
             </div>
+          </div>
         ))}
-      </div>
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          onClick={() => setShowCycleInput(!showCycleInput)}
-          className={`group flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all hover:scale-105 ${
-            showCycleInput || cycleDay
-              ? 'bg-rose-100 text-rose-700 border border-rose-300 shadow-soft'
-              : 'bg-rose-50 text-rose-500 hover:text-rose-700 hover:bg-rose-100 border border-rose-200'
-          }`}
-        >
-          {showCycleInput ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          <span>Cycle Day</span>
-          {cycleDay && <span className="text-rose-600 font-bold ml-1">· {cycleDay}</span>}
-        </button>
-
-        {speechSupported && (
-          <button
-            onClick={handleVoiceInput}
-            disabled={disabled || isListening}
-            className={`group flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all hover:scale-105 ${
-              isListening
-                ? 'bg-blush-500/20 text-blush-600 border border-blush-400 voice-pulse'
-                : 'bg-rose-50 text-rose-500 hover:text-rose-700 hover:bg-rose-100 border border-rose-200'
-            }`}
-          >
-            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 group-hover:sway" />}
-            <span>{isListening ? 'Listening...' : 'Voice'}</span>
-          </button>
+        {customTags.length > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">
+              Your Tags
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {customTags.map(custom => {
+                const key = slugifyCustomTag(custom.label);
+                return (
+                  <SymptomTag
+                    key={custom.id}
+                    tag={key}
+                    isSelected={selectedTags.has(key)}
+                    severity={selectedTags.get(key)?.severity}
+                    onClick={() => handleTagClick(key)}
+                    onSeverityChange={(sev) => handleSeverityChange(key, sev)}
+                    disabled={disabled}
+                  />
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Voice error — previously silent. Manual tap entry works regardless. */}
-      {voiceError && (
-        <div className="flex items-start gap-2 px-3 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-600 animate-fade-in">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          <span>{voiceError}</span>
-        </div>
-      )}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowCycleInput(!showCycleInput)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+              showCycleInput || cycleDay
+                ? 'bg-slate-800 text-teal-400 border border-teal-500/30'
+                : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            {showCycleInput ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span>Cycle Day</span>
+            {cycleDay && <span className="text-teal-400 font-medium ml-1">· {cycleDay}</span>}
+          </button>
 
-      {/* Cycle Day Input */}
+          {speechSupported && (
+            <button
+              onClick={handleVoiceInput}
+              disabled={disabled || isListening}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                isListening
+                  ? 'bg-coral-500/20 text-coral-400 border border-coral-500/30 voice-pulse'
+                  : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              <span>{isListening ? 'Listening...' : 'Voice'}</span>
+            </button>
+          )}
+        </div>
+
+        {voiceError && (
+          <div className="flex items-start gap-2 px-3 py-2 bg-coral-500/10 border border-coral-500/20 rounded-lg text-xs text-coral-300 animate-fade-in">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>{voiceError}</span>
+          </div>
+        )}
+      </div>
+
       {showCycleInput && (
-        <div className="animate-slide-down bg-gradient-to-br from-rose-50 to-blush-50 rounded-2xl p-4 border border-rose-200/60 shadow-soft">
-          <label className="text-sm text-rose-600 mb-3 block font-medium flex items-center gap-1.5">
-            <Heart className="w-4 h-4 text-rose-400" />
+        <div className="animate-slide-down bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+          <label className="text-sm text-slate-400 mb-2 block">
             Day of menstrual cycle (optional)
           </label>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-white rounded-xl p-1.5 shadow-soft">
+            <div className="flex items-center gap-1 bg-slate-900 rounded-lg p-1">
               {[1, 2, 3, 4].map(week => (
                 <div key={week} className="flex flex-col">
                   <div className="flex gap-0.5">
@@ -297,10 +321,10 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
                         <button
                           key={day}
                           onClick={() => setCycleDay(dayNum)}
-                          className={`w-7 h-7 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
+                          className={`w-7 h-7 rounded text-xs font-medium transition-all ${
                             isSelected
-                              ? 'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-glow-soft scale-110'
-                              : 'hover:bg-rose-100 text-rose-500 hover:text-rose-700'
+                              ? 'bg-teal-500 text-white'
+                              : 'hover:bg-slate-800 text-slate-500 hover:text-white'
                           }`}
                         >
                           {dayNum}
@@ -311,31 +335,22 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => setCycleDay('')}
-              className="text-xs text-rose-400 hover:text-rose-600 font-medium transition-colors"
-            >
+            <button onClick={() => setCycleDay('')} className="text-xs text-slate-500 hover:text-slate-300">
               Clear
             </button>
           </div>
         </div>
       )}
 
-      {/* Submit Section */}
       <div className="space-y-4">
-        {/* Selected Summary */}
         {selectedArray.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-3 bg-gradient-to-r from-rose-50 to-blush-50 rounded-2xl border border-rose-200/60 animate-scale-in">
-            {selectedArray.map((entry, i) => (
-              <div
-                key={entry.tag}
-                className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 text-sm shadow-soft rise-fade"
-                style={{ animationDelay: `${i * 50}ms`, opacity: 0 }}
-              >
-                <span className="text-rose-900 font-medium">
-                  {entry.tag === 'other' ? `"${entry.note?.slice(0, 12)}..."` : TAG_LABELS[entry.tag]}
+          <div className="flex flex-wrap gap-2 p-3 bg-slate-800/30 rounded-xl border border-slate-700/30">
+            {selectedArray.map(entry => (
+              <div key={entry.tag} className="flex items-center gap-1.5 bg-slate-900 rounded-lg px-2 py-1 text-sm">
+                <span className="text-white">
+                  {entry.tag === 'other' ? `"${entry.note?.slice(0, 12)}..."` : getTagLabel(entry.tag)}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-100 to-rose-200 text-rose-600 font-bold">
+                <span className="text-xs px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 font-medium">
                   {entry.severity}
                 </span>
               </div>
@@ -343,11 +358,10 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
           </div>
         )}
 
-        {/* Submit Button */}
         <button
           onClick={handleSubmit}
           disabled={disabled || submitting || selectedTags.size === 0}
-          className="group w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 disabled:from-rose-200 disabled:to-rose-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all duration-300 shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg hover:scale-[1.02] hover:shadow-petal shimmer-overlay"
+          className="w-full py-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-glow disabled:shadow-none flex items-center justify-center gap-3 text-lg"
         >
           {submitting ? (
             <>
@@ -356,32 +370,31 @@ export function SymptomLogger({ onSubmit, onDelete, disabled }: SymptomLoggerPro
             </>
           ) : (
             <>
-              <Sparkles className="w-5 h-5 group-hover:twinkle" />
+              <Sparkles className="w-5 h-5" />
               <span>Log {selectedTags.size > 0 ? `${selectedTags.size} Symptom${selectedTags.size > 1 ? 's' : ''}` : 'Symptoms'}</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Success Toast — now with a real Undo action */}
       {undoEntryId && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 toast">
-          <div className="flex items-center gap-3 bg-white border border-rose-200 rounded-2xl px-5 py-3 shadow-card">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-glow-soft">
-              <Check className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-2xl px-5 py-3 shadow-2xl">
+            <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4 text-teal-400" />
             </div>
-            <span className="text-sm text-rose-900 font-semibold">Symptoms logged</span>
+            <span className="text-sm text-white font-medium">Symptoms logged</span>
             <button
               onClick={handleUndo}
               disabled={undoing}
-              className="flex items-center gap-1.5 text-sm font-bold text-rose-600 hover:text-rose-800 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-teal-400 hover:text-teal-300 disabled:opacity-50 transition-colors"
             >
               <Undo2 className="w-4 h-4" />
               {undoing ? 'Undoing...' : 'Undo'}
             </button>
             <button
               onClick={() => setUndoEntryId(null)}
-              className="text-rose-400 hover:text-rose-600 transition-colors"
+              className="text-slate-500 hover:text-white transition-colors"
               title="Dismiss (keeps the entry)"
             >
               <X className="w-4 h-4" />
@@ -412,32 +425,30 @@ function SymptomTag({
   otherText?: string;
   onOtherTextChange?: (text: string) => void;
 }) {
-  const label = TAG_LABELS[tag] || tag;
+  const label = getTagLabel(tag);
 
   return (
     <div className="flex items-center gap-1">
       <button
         onClick={onClick}
         disabled={disabled}
-        className={`tag-button shimmer-overlay px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 ${
+        className={`tag-button px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
           isSelected
-            ? 'bg-gradient-to-br from-rose-400/20 to-rose-500/20 text-rose-700 border border-rose-400/40 shadow-soft scale-105'
-            : 'bg-white/60 text-rose-500 hover:text-rose-800 hover:bg-white border border-rose-200/50'
+            ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
+            : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent'
         }`}
       >
         {label}
       </button>
 
       {isSelected && severity && tag !== 'other' && (
-        <div className="flex items-center bg-white rounded-xl p-0.5 shadow-soft animate-scale-in border border-rose-200/50">
+        <div className="flex items-center bg-slate-800 rounded-lg p-0.5 animate-scale-in">
           {[1, 2, 3, 4, 5].map(sev => (
             <button
               key={sev}
               onClick={() => onSeverityChange(sev)}
-              className={`severity-pill w-6 h-6 rounded-lg text-xs font-bold transition-all ${
-                severity === sev
-                  ? 'active bg-gradient-to-br from-rose-400 to-rose-600 text-white'
-                  : 'text-rose-400 hover:text-rose-600 hover:bg-rose-100'
+              className={`severity-pill w-6 h-6 rounded-md text-xs font-medium transition-all ${
+                severity === sev ? 'active bg-teal-500 text-white' : 'text-slate-500 hover:text-white hover:bg-slate-700'
               }`}
               title={SEVERITY_LABELS[sev]}
             >
@@ -454,7 +465,7 @@ function SymptomTag({
           onChange={e => onOtherTextChange(e.target.value)}
           placeholder="Describe..."
           disabled={disabled}
-          className="w-32 px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-sm text-rose-900 placeholder-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/50 animate-scale-in"
+          className="w-32 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500 animate-scale-in"
           autoFocus
           maxLength={60}
         />
