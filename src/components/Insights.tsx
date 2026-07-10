@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import {
-  Crown, Link2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronRight,
+  Crown, Link2, TrendingUp, TrendingDown, Minus, Sparkles,
   BrainCircuit, KeyRound, Eye, EyeOff, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { InsightCard } from './InsightCard';

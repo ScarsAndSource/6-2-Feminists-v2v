@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Brain, Lightbulb, AlertTriangle, RefreshCw, KeyRound } from 'lucide-react';
+import { Sparkles, Brain, AlertTriangle, RefreshCw, KeyRound } from 'lucide-react';
 import type { Entry } from '../lib/types';
 import { generateAIPredictions, getGroqApiKey } from '../lib/groq';
 

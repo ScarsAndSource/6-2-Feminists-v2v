@@ -6,22 +6,6 @@ export interface AdvocacyNoteResult {
   provider: 'groq' | 'gemini' | 'template';
 }
 
-const CLIENT_TIMEOUT_MS = 20000;
-
-class TimeoutError extends Error {
-  constructor() {
-    super('client-side timeout waiting for advocacy-note');
-    this.name = 'TimeoutError';
-  }
-}
-
-function withClientTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new TimeoutError()), ms);
-    promise.then(r => { clearTimeout(timer); resolve(r); }).catch(e => { clearTimeout(timer); reject(e); });
-  });
-}
-
 const OUTCOME_ASKS: Record<string, string> = {
   'dismissed / told it was likely nothing': "I'd like this looked into further, whether that's testing or a referral.",
   'tested, with normal/inconclusive results': "given how often this keeps recurring despite normal results, I'd like to talk through what the next step looks like.",
